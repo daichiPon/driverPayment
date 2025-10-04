@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from "react";
 import liff from "@line/liff";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 function App() {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true); // ← 読み込み制御用
+  const [profile, setProfile] = useState < any > null;
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initLiff = async () => {
@@ -27,25 +32,29 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!profile) {
-      alert("プロフィール情報を取得中です。少し待ってから再度お試しください。");
+      alert("プロフィール情報を取得中です。少し待ってください");
       return;
     }
 
     const formData = new FormData(e.currentTarget);
 
-    await fetch("/api/save", {
-      method: "POST",
-      body: JSON.stringify({
-        userId: profile.userId, // ← LINEのユーザーID
-        displayName: profile.displayName,
-        distance: formData.get("distance"),
-        highwayFee: formData.get("highwayFee"),
-        lateHour: formData.get("lateHour"),
-      }),
-      headers: { "Content-Type": "application/json" },
-    });
+    const { error } = await supabase.from("driver_payments").insert([
+      {
+        user_id: profile.userId,
+        display_name: profile.displayName,
+        mileage: formData.get("distance"),
+        highway_fee: formData.get("highwayFee"),
+        late_hour: formData.get("lateHour") || 0, // デフォルト 0
+      },
+    ]);
 
-    alert("保存しました！");
+    if (error) {
+      console.error(error);
+      alert("保存に失敗しました");
+    } else {
+      alert("保存しました！");
+      e.currentTarget.reset();
+    }
   };
 
   if (loading) {
@@ -58,7 +67,6 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
-      {/* ヘッダー */}
       <header className="bg-green-500 text-white py-4 text-center font-semibold shadow-md">
         ドライバー精算
       </header>
@@ -111,7 +119,6 @@ function App() {
                 name="lateHour"
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-400 outline-none"
                 placeholder="例: 1"
-                required
               />
             </div>
 
