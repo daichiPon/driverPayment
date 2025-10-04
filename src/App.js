@@ -44,7 +44,7 @@ function App() {
         display_name: profile.displayName,
         mileage: formData.get("distance"),
         highway_fee: formData.get("highwayFee"),
-        late_hour: formData.get("lateHour") || 0, // デフォルト 0
+        late_hour: formData.get("lateHour") || 0,
       },
     ]);
 
