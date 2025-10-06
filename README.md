@@ -1,3 +1,12 @@
+# 開発手順
+`($env:HTTPS = "true") ; npm start`
+
+- ↑のコマンドでhttpsでlocalhostを開くことができる
+
+
+
+
+
 <<<<<<< HEAD
 # Getting Started with Create React App
 
