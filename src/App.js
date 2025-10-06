@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import liff from "@line/liff";
 import { createClient } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
 
 // Supabase 初期化
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
@@ -18,6 +19,7 @@ function App() {
   });
   const [isUpdate, setIsUpdate] = useState(false);
   const [recordId, setRecordId] = useState(null);
+  const navigator = useNavigate();
 
   // LIFF初期化 & プロフィール取得
   useEffect(() => {
@@ -197,6 +199,9 @@ function App() {
             </form>
           )}
         </div>
+        <button onClick={() => navigator("/summary")}>
+          <span>集計ページ</span>
+        </button>
       </main>
     </div>
   );
