@@ -12,7 +12,7 @@ function Summary() {
   const [loading, setLoading] = useState(true);
   const [allPayments, setAllPayments] = useState([]);
 
-  // LIFF初期化 & プロフィール取得
+  // LIFF 初期化
   useEffect(() => {
     const initLiff = async () => {
       try {
@@ -32,7 +32,7 @@ function Summary() {
     initLiff();
   }, []);
 
-  // Supabaseからデータ取得
+  // Supabase から支払いデータ取得
   useEffect(() => {
     if (!profile) return;
 
@@ -53,6 +53,63 @@ function Summary() {
 
     fetchAllData();
   }, [profile]);
+
+  // テーブルをDOMに直接生成する関数（generateTable相当）
+  useEffect(() => {
+    if (allPayments.length === 0) return;
+
+    const container = document.getElementById("table-container");
+    if (!container) return;
+
+    // 既存のテーブルをクリア
+    container.innerHTML = "";
+
+    // <table> と <tbody> 作成
+    const tbl = document.createElement("table");
+    const tblBody = document.createElement("tbody");
+
+    // 枠線などのスタイル
+    tbl.style.border = "2px solid #555";
+    tbl.style.borderCollapse = "collapse";
+    tbl.style.width = "100%";
+
+    // ヘッダー行作成
+    const header = document.createElement("tr");
+    ["日付", "走行距離", "高速料金", "遅刻時間"].forEach((head) => {
+      const th = document.createElement("th");
+      th.textContent = head;
+      th.style.border = "1px solid #999";
+      th.style.padding = "8px";
+      th.style.backgroundColor = "#eee";
+      header.appendChild(th);
+    });
+    tblBody.appendChild(header);
+
+    // データ行を追加
+    allPayments.forEach((p) => {
+      const row = document.createElement("tr");
+      const rowData = [
+        new Date(p.created_at).toLocaleDateString(),
+        `${p.mileage} km`,
+        `${p.highway_fee} 円`,
+        `${p.late_hour} h`,
+      ];
+
+      rowData.forEach((text) => {
+        const cell = document.createElement("td");
+        cell.textContent = text;
+        cell.style.border = "1px solid #ccc";
+        cell.style.padding = "6px";
+        cell.style.textAlign = "center";
+        row.appendChild(cell);
+      });
+
+      tblBody.appendChild(row);
+    });
+
+    tbl.appendChild(tblBody);
+    container.appendChild(tbl);
+  }, [allPayments]);
 
   if (loading) {
     return (
@@ -76,43 +133,11 @@ function Summary() {
           </p>
         )}
 
-        <div className="bg-white rounded-lg shadow-md w-full max-w-md p-4">
-          <h2 className="text-lg font-semibold mb-3 text-center border-b pb-2">
-            支払い履歴一覧
-          </h2>
-
-          {allPayments.length === 0 ? (
-            <p className="text-center text-gray-500 py-4">データがありません</p>
-          ) : (
-            <table className="w-full border border-gray-300 border-collapse">
-              <thead className="bg-gray-200 text-gray-700">
-                <tr>
-                  <th className="p-2 border border-gray-300">日付</th>
-                  <th className="p-2 border border-gray-300">走行距離</th>
-                  <th className="p-2 border border-gray-300">高速料金</th>
-                  <th className="p-2 border border-gray-300">遅刻時間</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allPayments.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="p-2 border border-gray-300 text-center">
-                      {new Date(p.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="p-2 border border-gray-300 text-center">
-                      {p.mileage} km
-                    </td>
-                    <td className="p-2 border border-gray-300 text-center">
-                      {p.highway_fee} 円
-                    </td>
-                    <td className="p-2 border border-gray-300 text-center">
-                      {p.late_hour} h
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+        <div
+          id="table-container"
+          className="bg-white rounded-lg shadow-md w-full max-w-md p-4"
+        >
+          {/* テーブルは useEffect 内で動的に生成 */}
         </div>
       </main>
     </div>
