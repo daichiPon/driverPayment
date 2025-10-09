@@ -3,7 +3,7 @@ import liff from "@line/liff";
 import { db } from "../../firebase";
 import { collection, query, where, getDocs, orderBy, Timestamp, startAt, endAt } from "firebase/firestore";
 
-function Summary() {
+function Summary({ overrideUserId = null, displayName = "", isAdminView = false }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [allPayments, setAllPayments] = useState([]);
@@ -31,7 +31,7 @@ function Summary() {
 
   // 指定月のデータ取得
   useEffect(() => {
-    if (!profile) return;
+    if (!profile && !overrideUserId) return;
 
     const fetchMonthData = async () => {
       const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
@@ -40,7 +40,7 @@ function Summary() {
       try {
         const q = query(
           collection(db, "driver_payments"),
-          where("user_id", "==", profile.userId),
+          where("user_id", "==", overrideUserId || profile.userId),
           where("created_at", ">=", start),
           where("created_at", "<=", end),
           orderBy("created_at", "asc")

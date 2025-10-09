@@ -212,8 +212,11 @@ useEffect(() => {
             </form>
           )}
         </div>
-        <button onClick={() => navigator("/summary")}>
+        <button onClick={() => navigator("/Summary")}>
           <span>集計ページ</span>
+        </button>
+        <button onClick={() => navigator("/AdminSummary")}>
+          <span>管理者用集計ページ</span>
         </button>
       </main>
     </div>
