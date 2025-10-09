@@ -21,10 +21,11 @@ function App() {
     mileage: "",
     highwayFee: 0,
     hour: 0,
-    amount: 0
+    amount: 0,
   });
   const [isUpdate, setIsUpdate] = useState(false);
   const [recordId, setRecordId] = useState(null);
+  const [user, setUser] = useState(null);
   const navigator = useNavigate();
 
   // LIFF初期化 & プロフィール取得
@@ -48,52 +49,76 @@ function App() {
   }, []);
 
   // 今日のデータを取得してフォームにセット
-useEffect(() => {
-  if (!profile) return;
+  useEffect(() => {
+    if (!profile) return;
 
-  const fetchTodayData = async () => {
-    const today = new Date();
-    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
-    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    const fetchTodayData = async () => {
+      const today = new Date();
+      const start = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        0,
+        0,
+        0
+      );
+      const end = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+        23,
+        59,
+        59
+      );
 
-    const q = query(
-      collection(db, "driver_payments"),
-      where("user_id", "==", profile.userId),
-      where("created_at", ">=", Timestamp.fromDate(start)),
-      where("created_at", "<=", Timestamp.fromDate(end))
-    );
+      const q = query(
+        collection(db, "driver_payments"),
+        where("user_id", "==", profile.userId),
+        where("created_at", ">=", Timestamp.fromDate(start)),
+        where("created_at", "<=", Timestamp.fromDate(end))
+      );
 
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      const docSnap = snapshot.docs[0];
-      const data = docSnap.data();
-      setFormData({
-        mileage: data.mileage,
-        highwayFee: data.highway_fee,
-        hour: data.hour,
-      });
-      setRecordId(docSnap.id);
-      setIsUpdate(true);
-    }
-  };
+      const u = query(
+        collection(db, "user"),
+        where("user_id", "==", profile.userId)
+      );
 
-  fetchTodayData();
-}, [profile]);
+      const docsDriverPayment = await getDocs(q);
+      const docsUser = await getDocs(u);
+      const resUser = docsUser.docs[0];
+      setUser(resUser);
+      console.log("resUser", JSON.stringify(resUser));
 
+      if (!docsDriverPayment.empty) {
+        const resDriverPayment = docsDriverPayment.docs[0];
+        const data = resDriverPayment.data();
+        setFormData({
+          mileage: data.mileage,
+          highwayFee: data.highway_fee,
+          hour: data.hour,
+        });
+        setRecordId(resDriverPayment.id);
+        setIsUpdate(true);
+      }
+    };
+
+    fetchTodayData();
+  }, [profile]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
-    console.log("e",e)
+    console.log("e", e);
     e.preventDefault();
     if (!profile) return;
 
-    const mileageFee= Math.floor(formData.mileage/7)*100
-    console.log('距離料金',mileageFee)
-    formData.amount = mileageFee + Number(formData.highwayFee)+ (Number(formData.hour)*1600)
-    console.log('合計金額',formData.amount)
+    const mileageFee = Math.floor(formData.mileage / 7) * 100;
+    console.log("距離料金", mileageFee);
+    formData.amount =
+      mileageFee + Number(formData.highwayFee) + Number(formData.hour) * 1600;
+    console.log("合計金額", formData.amount);
 
     const payload = {
       user_id: profile.userId,
@@ -104,7 +129,17 @@ useEffect(() => {
       amount: formData.amount,
       created_at: Timestamp.now(),
     };
-    console.log("payLoad",payload)
+    console.log("payLoad", JSON.stringify(formData));
+
+    if (!user) {
+      console.log("保存処理");
+      const saveUser = {
+        display_name: profile.displayName,
+        user_id: profile.userId,
+      };
+      await addDoc(collection(db, "user"), saveUser);
+      console.log("保存", user);
+    }
 
     try {
       if (isUpdate && recordId) {
@@ -116,7 +151,7 @@ useEffect(() => {
         await addDoc(collection(db, "driver_payments"), payload);
       }
       setSaved(true);
-      console.log('保存')
+      console.log("保存だよ");
     } catch (err) {
       console.error(err);
       alert("保存に失敗しました");
@@ -217,6 +252,9 @@ useEffect(() => {
         </button>
         <button onClick={() => navigator("/AdminSummary")}>
           <span>管理者用集計ページ</span>
+        </button>
+        <button onClick={() => navigator("/UserData")}>
+          <span>ユーザ</span>
         </button>
       </main>
     </div>
