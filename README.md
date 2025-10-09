@@ -9,4 +9,4 @@
 
 ## lineDeveloper設定
 - 開発時：`https://localhost:3000/`
-- 本番環境:`driver-payment.vercel.app`
+- 本番環境:`https://driver-payment.vercel.app`
