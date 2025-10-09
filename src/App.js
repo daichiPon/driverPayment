@@ -48,7 +48,7 @@ function App() {
     initLiff();
   }, []);
 
-  // 今日のデータを取得してフォームにセット
+  // 今日のデータ取得
   useEffect(() => {
     if (!profile) return;
 
@@ -87,7 +87,6 @@ function App() {
       const docsUser = await getDocs(u);
       const resUser = docsUser.docs[0];
       setUser(resUser);
-      console.log("resUser", JSON.stringify(resUser));
 
       if (!docsDriverPayment.empty) {
         const resDriverPayment = docsDriverPayment.docs[0];
@@ -110,15 +109,12 @@ function App() {
   };
 
   const handleSubmit = async (e) => {
-    console.log("e", e);
     e.preventDefault();
     if (!profile) return;
 
     const mileageFee = Math.floor(formData.mileage / 7) * 100;
-    console.log("距離料金", mileageFee);
     formData.amount =
       mileageFee + Number(formData.highwayFee) + Number(formData.hour) * 1600;
-    console.log("合計金額", formData.amount);
 
     const payload = {
       user_id: profile.userId,
@@ -129,29 +125,21 @@ function App() {
       amount: formData.amount,
       created_at: Timestamp.now(),
     };
-    console.log("payLoad", JSON.stringify(formData));
 
     if (!user) {
-      console.log("保存処理");
-      const saveUser = {
+      await addDoc(collection(db, "user"), {
         display_name: profile.displayName,
         user_id: profile.userId,
-      };
-      await addDoc(collection(db, "user"), saveUser);
-      console.log("保存", user);
+      });
     }
 
     try {
       if (isUpdate && recordId) {
-        // 更新
-        const docRef = doc(db, "driver_payments", recordId);
-        await updateDoc(docRef, payload);
+        await updateDoc(doc(db, "driver_payments", recordId), payload);
       } else {
-        // 新規作成
         await addDoc(collection(db, "driver_payments"), payload);
       }
       setSaved(true);
-      console.log("保存だよ");
     } catch (err) {
       console.error(err);
       alert("保存に失敗しました");
@@ -160,40 +148,90 @@ function App() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
         <p>LINE情報を取得中です...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
-      <header className="bg-green-500 text-white py-4 text-center font-semibold shadow-md">
-        ドライバー精算
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#f3f3f3",
+        padding: "16px",
+      }}
+    >
+      <header
+        style={{
+          backgroundColor: "#28a745",
+          color: "#fff",
+          padding: "16px 0",
+          textAlign: "center",
+          fontWeight: "bold",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        }}
+      >
+        終了報告
       </header>
 
-      <main className="flex-1 flex items-center justify-center">
-        <div className="max-w-md w-full px-4">
+      <main
+        style={{ display: "flex", justifyContent: "center", marginTop: "24px" }}
+      >
+        <div style={{ maxWidth: "500px", width: "100%" }}>
           {profile && (
-            <p className="text-center text-gray-600 mb-4">
+            <p
+              style={{
+                textAlign: "center",
+                marginBottom: "24px",
+                fontSize: "16px",
+                color: "#555",
+              }}
+            >
               ようこそ{" "}
-              <span className="font-semibold">{profile.displayName}</span> さん
+              <span style={{ fontWeight: "bold" }}>{profile.displayName}</span>{" "}
+              さん
             </p>
           )}
 
           {saved ? (
-            <div className="bg-white shadow-md rounded-lg p-6 text-center">
-              <p className="text-green-600 font-semibold text-lg">
-                保存完了しました！
-              </p>
+            <div
+              style={{
+                backgroundColor: "#d4edda",
+                padding: "16px",
+                borderRadius: "8px",
+                textAlign: "center",
+                color: "#155724",
+                fontWeight: "bold",
+              }}
+            >
+              保存完了しました！
             </div>
           ) : (
             <form
               onSubmit={handleSubmit}
-              className="bg-white shadow-md rounded-lg p-6 relative"
+              style={{
+                backgroundColor: "#fff",
+                padding: "24px",
+                borderRadius: "8px",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+              }}
             >
-              <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-2">
+              <div style={{ marginBottom: "16px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "6px",
+                    fontWeight: "bold",
+                  }}
+                >
                   走行距離 (km)
                 </label>
                 <input
@@ -201,14 +239,26 @@ function App() {
                   name="mileage"
                   value={formData.mileage}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-400 outline-none"
                   placeholder="例: 70"
                   required
+                  style={{
+                    width: "95%",
+                    padding: "8px",
+                    borderRadius: "4px",
+                    border: "1px solid #ccc",
+                    outline: "none",
+                  }}
                 />
               </div>
 
-              <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-2">
+              <div style={{ marginBottom: "16px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "6px",
+                    fontWeight: "bold",
+                  }}
+                >
                   高速料金 (円)
                 </label>
                 <input
@@ -216,14 +266,26 @@ function App() {
                   name="highwayFee"
                   value={formData.highwayFee}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-400 outline-none"
                   placeholder="例: 1950"
                   required
+                  style={{
+                    width: "95%",
+                    padding: "8px",
+                    borderRadius: "4px",
+                    border: "1px solid #ccc",
+                    outline: "none",
+                  }}
                 />
               </div>
 
-              <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-2">
+              <div style={{ marginBottom: "16px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "6px",
+                    fontWeight: "bold",
+                  }}
+                >
                   増減時間 (時)
                 </label>
                 <input
@@ -231,31 +293,84 @@ function App() {
                   name="hour"
                   value={formData.hour}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-400 outline-none"
                   placeholder="例: 1"
+                  style={{
+                    width: "95%",
+                    padding: "8px",
+                    borderRadius: "4px",
+                    border: "1px solid #ccc",
+                    outline: "none",
+                  }}
                 />
               </div>
 
-              <div className="flex justify-end">
+              <div style={{ textAlign: "right" }}>
                 <button
                   type="submit"
-                  className="bg-green-500 text-white font-semibold px-6 py-2 rounded-lg shadow hover:bg-green-600 active:scale-95 transition"
+                  style={{
+                    backgroundColor: "#28a745",
+                    color: "#fff",
+                    fontWeight: "bold",
+                    padding: "10px 20px",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#218838")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#28a745")
+                  }
                 >
                   {isUpdate ? "更新" : "保存"}
                 </button>
               </div>
             </form>
           )}
+
+          <div
+            style={{
+              marginTop: "24px",
+              display: "flex",
+              justifyContent: "space-around",
+            }}
+          >
+            <button
+              onClick={() => navigator("/Summary")}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+                cursor: "pointer",
+              }}
+            >
+              集計ページ
+            </button>
+            <button
+              onClick={() => navigator("/AdminSummary")}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+                cursor: "pointer",
+              }}
+            >
+              管理者用集計ページ
+            </button>
+            <button
+              onClick={() => navigator("/UserData")}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+                cursor: "pointer",
+              }}
+            >
+              ユーザ
+            </button>
+          </div>
         </div>
-        <button onClick={() => navigator("/Summary")}>
-          <span>集計ページ</span>
-        </button>
-        <button onClick={() => navigator("/AdminSummary")}>
-          <span>管理者用集計ページ</span>
-        </button>
-        <button onClick={() => navigator("/UserData")}>
-          <span>ユーザ</span>
-        </button>
       </main>
     </div>
   );
