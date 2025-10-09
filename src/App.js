@@ -1,21 +1,27 @@
 import React, { useEffect, useState } from "react";
 import liff from "@line/liff";
-import { createClient } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
-
-// Supabase 初期化
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "./firebase";
 
 function App() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saved, setSaved] = useState(false); // 保存完了フラグ
+  const [saved, setSaved] = useState(false);
   const [formData, setFormData] = useState({
-    distance: "",
-    highwayFee: "",
-    lateHour: "",
+    mileage: "",
+    highwayFee: 0,
+    hour: 0,
+    amount: 0
   });
   const [isUpdate, setIsUpdate] = useState(false);
   const [recordId, setRecordId] = useState(null);
@@ -42,71 +48,78 @@ function App() {
   }, []);
 
   // 今日のデータを取得してフォームにセット
-  useEffect(() => {
-    if (!profile) return;
+useEffect(() => {
+  if (!profile) return;
 
-    const fetchTodayData = async () => {
-      const today = new Date().toISOString().split("T")[0];
-      const { data, error } = await supabase
-        .from("driver_payments")
-        .select("*")
-        .eq("user_id", profile.userId)
-        .gte("created_at", `${today}T00:00:00`)
-        .lte("created_at", `${today}T23:59:59`)
-        .single();
+  const fetchTodayData = async () => {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
 
-      if (error && error.code !== "PGRST116") {
-        console.error(error);
-        return;
-      }
+    const q = query(
+      collection(db, "driver_payments"),
+      where("user_id", "==", profile.userId),
+      where("created_at", ">=", Timestamp.fromDate(start)),
+      where("created_at", "<=", Timestamp.fromDate(end))
+    );
 
-      if (data) {
-        setFormData({
-          distance: data.mileage,
-          highwayFee: data.highway_fee,
-          lateHour: data.late_hour,
-        });
-        setRecordId(data.id);
-        setIsUpdate(true);
-      }
-    };
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const docSnap = snapshot.docs[0];
+      const data = docSnap.data();
+      setFormData({
+        mileage: data.mileage,
+        highwayFee: data.highway_fee,
+        hour: data.hour,
+      });
+      setRecordId(docSnap.id);
+      setIsUpdate(true);
+    }
+  };
 
-    fetchTodayData();
-  }, [profile]);
+  fetchTodayData();
+}, [profile]);
+
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
+    console.log("e",e)
     e.preventDefault();
     if (!profile) return;
+
+    const mileageFee= Math.floor(formData.mileage/7)*100
+    console.log('距離料金',mileageFee)
+    formData.amount = mileageFee + Number(formData.highwayFee)+ (Number(formData.hour)*1600)
+    console.log('合計金額',formData.amount)
 
     const payload = {
       user_id: profile.userId,
       display_name: profile.displayName,
-      mileage: formData.distance,
+      mileage: formData.mileage,
       highway_fee: formData.highwayFee,
-      late_hour: formData.lateHour || 0,
+      hour: formData.hour || 0,
+      amount: formData.amount,
+      created_at: Timestamp.now(),
     };
+    console.log("payLoad",payload)
 
-    let error;
-    if (isUpdate) {
-      // 更新
-      ({ error } = await supabase
-        .from("driver_payments")
-        .update(payload)
-        .eq("id", recordId));
-    } else {
-      // 新規作成
-      ({ error } = await supabase.from("driver_payments").insert([payload]));
-    }
-
-    if (error) {
-      console.error(error);
-      alert("保存に失敗しました");
-    } else {
+    try {
+      if (isUpdate && recordId) {
+        // 更新
+        const docRef = doc(db, "driver_payments", recordId);
+        await updateDoc(docRef, payload);
+      } else {
+        // 新規作成
+        await addDoc(collection(db, "driver_payments"), payload);
+      }
       setSaved(true);
+      console.log('保存')
+    } catch (err) {
+      console.error(err);
+      alert("保存に失敗しました");
     }
   };
 
@@ -150,8 +163,8 @@ function App() {
                 </label>
                 <input
                   type="number"
-                  name="distance"
-                  value={formData.distance}
+                  name="mileage"
+                  value={formData.mileage}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-400 outline-none"
                   placeholder="例: 70"
@@ -176,12 +189,12 @@ function App() {
 
               <div className="mb-4">
                 <label className="block text-gray-700 font-medium mb-2">
-                  遅刻時間 (時)
+                  増減時間 (時)
                 </label>
                 <input
                   type="number"
-                  name="lateHour"
-                  value={formData.lateHour}
+                  name="hour"
+                  value={formData.hour}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-400 outline-none"
                   placeholder="例: 1"

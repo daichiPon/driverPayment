@@ -1,18 +1,14 @@
 import React, { useEffect, useState } from "react";
 import liff from "@line/liff";
-import { createClient } from "@supabase/supabase-js";
-
-// Supabase 初期化
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { db } from "../../firebase";
+import { collection, query, where, getDocs, orderBy, Timestamp } from "firebase/firestore";
 
 function Summary() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [allPayments, setAllPayments] = useState([]);
 
-  // LIFF 初期化
+  // LIFF初期化
   useEffect(() => {
     const initLiff = async () => {
       try {
@@ -32,29 +28,41 @@ function Summary() {
     initLiff();
   }, []);
 
-  // Supabase から支払いデータ取得
-  useEffect(() => {
-    if (!profile) return;
+  // Firestore からデータ取得
+useEffect(() => {
+  if (!profile) return;
 
-    const fetchAllData = async () => {
-      const { data, error } = await supabase
-        .from("driver_payments")
-        .select("*")
-        .eq("user_id", profile.userId)
-        .order("created_at", { ascending: false });
+  const fetchAllData = async () => {
+    try {
+      const q = query(
+        collection(db, "driver_payments"),
+        where("user_id", "==", profile.userId),
+        orderBy("created_at", "asc")
+      );
 
-      if (error) {
-        console.error(error);
-        return;
-      }
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map((doc) => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          ...d,
+          created_at: d.created_at instanceof Timestamp 
+            ? d.created_at.toDate()          // Firestore Timestampの場合
+            : new Date(d.created_at.seconds * 1000), // JSONオブジェクトの場合
+        };
+      });
 
-      if (data) setAllPayments(data);
-    };
+      console.log(JSON.stringify(data));
+      setAllPayments(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
-    fetchAllData();
-  }, [profile]);
+  fetchAllData();
+}, [profile]);
 
-  // テーブルをDOMに直接生成する関数（generateTable相当）
+  // テーブルをDOMに直接生成する関数
   useEffect(() => {
     if (allPayments.length === 0) return;
 
@@ -63,11 +71,12 @@ function Summary() {
 
     // 既存のテーブルをクリア
     container.innerHTML = "";
-
+    //　横のスペース確保
+    container.style.paddingLeft = "16px";
+    container.style.paddingRight = "16px";
     // <table> と <tbody> 作成
     const tbl = document.createElement("table");
     const tblBody = document.createElement("tbody");
-
     // 枠線などのスタイル
     tbl.style.border = "2px solid #555";
     tbl.style.borderCollapse = "collapse";
@@ -75,7 +84,7 @@ function Summary() {
 
     // ヘッダー行作成
     const header = document.createElement("tr");
-    ["日付", "走行距離", "高速料金", "遅刻時間"].forEach((head) => {
+    ["日付", "走行距離", "高速料金", "遅刻時間", "精算額"].forEach((head) => {
       const th = document.createElement("th");
       th.textContent = head;
       th.style.border = "1px solid #999";
@@ -92,7 +101,8 @@ function Summary() {
         new Date(p.created_at).toLocaleDateString(),
         `${p.mileage} km`,
         `${p.highway_fee} 円`,
-        `${p.late_hour} h`,
+        `${p.hour} h`,
+        `${p.amount} 円`,
       ];
 
       rowData.forEach((text) => {
@@ -137,7 +147,6 @@ function Summary() {
           id="table-container"
           className="bg-white rounded-lg shadow-md w-full max-w-md p-4"
         >
-          {/* テーブルは useEffect 内で動的に生成 */}
         </div>
       </main>
     </div>
