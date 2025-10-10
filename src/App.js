@@ -85,7 +85,7 @@ function App() {
 
       const docsDriverPayment = await getDocs(q);
       const docsUser = await getDocs(u);
-      const resUser = docsUser.docs[0];
+      const resUser = docsUser.docs[0].data();
       setUser(resUser);
 
       if (!docsDriverPayment.empty) {
@@ -112,9 +112,13 @@ function App() {
     e.preventDefault();
     if (!profile) return;
 
+    const perHour = user.amount / 5;
     const mileageFee = Math.floor(formData.mileage / 7) * 100;
     formData.amount =
-      mileageFee + Number(formData.highwayFee) + Number(formData.hour) * 1600;
+      mileageFee +
+      Number(formData.highwayFee) +
+      user.amount +
+      Number(formData.hour) * perHour;
 
     const payload = {
       user_id: profile.userId,

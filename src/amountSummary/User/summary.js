@@ -1,9 +1,22 @@
 import React, { useEffect, useState } from "react";
 import liff from "@line/liff";
 import { db } from "../../firebase";
-import { collection, query, where, getDocs, orderBy, Timestamp, startAt, endAt } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  Timestamp,
+  startAt,
+  endAt,
+} from "firebase/firestore";
 
-function Summary({ overrideUserId = null, displayName = "", isAdminView = false }) {
+function Summary({
+  overrideUserId = null,
+  displayName = "",
+  isAdminView = false,
+}) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [allPayments, setAllPayments] = useState([]);
@@ -34,8 +47,19 @@ function Summary({ overrideUserId = null, displayName = "", isAdminView = false 
     if (!profile && !overrideUserId) return;
 
     const fetchMonthData = async () => {
-      const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0, 23, 59, 59);
+      const start = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth(),
+        1
+      );
+      const end = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() + 1,
+        0,
+        23,
+        59,
+        59
+      );
 
       try {
         const q = query(
@@ -52,9 +76,10 @@ function Summary({ overrideUserId = null, displayName = "", isAdminView = false 
           return {
             id: doc.id,
             ...d,
-            created_at: d.created_at instanceof Timestamp
-              ? d.created_at.toDate()
-              : new Date(d.created_at.seconds * 1000),
+            created_at:
+              d.created_at instanceof Timestamp
+                ? d.created_at.toDate()
+                : new Date(d.created_at.seconds * 1000),
           };
         });
 
@@ -132,27 +157,50 @@ function Summary({ overrideUserId = null, displayName = "", isAdminView = false 
   }, [allPayments]);
 
   // 月切替
-  const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
-  const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
+  const prevMonth = () =>
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
+    );
+  const nextMonth = () =>
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
+    );
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen"><p>LINE情報を取得中です...</p></div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>LINE情報を取得中です...</p>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-6">
-        {profile && <p className="text-center text-gray-600 mb-4">ようこそ <span className="font-semibold">{profile.displayName}</span> さん</p>}
+        {profile && (
+          <p className="text-center text-gray-600 mb-4">
+            ようこそ{" "}
+            <span className="font-semibold">{profile.displayName}</span> さん
+          </p>
+        )}
 
-        <div style={{ marginBottom: 20 ,paddingLeft :16}}>
-          <button onClick={prevMonth} className="px-2 py-1 bg-gray-300 rounded">前月</button>
-          <span>{currentMonth.getFullYear()}年 {currentMonth.getMonth() + 1}月</span>
-          <button onClick={nextMonth} className="px-2 py-1 bg-gray-300 rounded">次月</button>
+        <div style={{ marginBottom: 20, paddingLeft: 16 }}>
+          <button onClick={prevMonth} className="px-2 py-1 bg-gray-300 rounded">
+            前月
+          </button>
+          <span>
+            {currentMonth.getFullYear()}年 {currentMonth.getMonth() + 1}月
+          </span>
+          <button onClick={nextMonth} className="px-2 py-1 bg-gray-300 rounded">
+            次月
+          </button>
         </div>
 
-        <div id="table-container" className="bg-white rounded-lg shadow-md w-full max-w-md p-4"></div>
+        <div
+          id="table-container"
+          className="bg-white rounded-lg shadow-md w-full max-w-md p-4"
+        ></div>
         {/* テスト */}
-
       </main>
     </div>
   );
