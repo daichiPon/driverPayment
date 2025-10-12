@@ -373,6 +373,17 @@ function App() {
             >
               ユーザ
             </button>
+            <button
+              onClick={() => navigator("/ShiftInput")}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+                cursor: "pointer",
+              }}
+            >
+              シフト
+            </button>
           </div>
         </div>
       </main>
