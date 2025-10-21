@@ -185,7 +185,7 @@ function Summary({
 
     // ヘッダー
     const header = document.createElement("tr");
-    ["日付", "走行距離", "高速料金", "遅刻時間", "精算額"].forEach((head) => {
+    ["日付", "走行距離", "高速料金", "増減時間", "精算額"].forEach((head) => {
       const th = document.createElement("th");
       th.textContent = head;
       th.style.border = "1px solid #999";
