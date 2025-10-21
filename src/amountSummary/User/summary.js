@@ -21,6 +21,18 @@ function Summary({
   const [loading, setLoading] = useState(true);
   const [allPayments, setAllPayments] = useState([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [payments, setPayments] = useState([]);
+
+  const getWeekRange = (weeksAgo = 0) => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay() - weeksAgo * 7); // 日曜始まり
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    return { startOfWeek, endOfWeek };
+  };
 
   // LIFF初期化
   useEffect(() => {
@@ -82,12 +94,77 @@ function Summary({
                 : new Date(d.created_at.seconds * 1000),
           };
         });
+        console.log("data", JSON.stringify(data));
 
         setAllPayments(data);
       } catch (err) {
         console.error(err);
       }
     };
+
+    const fetchWeekData = async () => {
+      const { startOfWeek, endOfWeek } = getWeekRange(0); // 今週
+      const { startOfWeek: lastStart, endOfWeek: lastEnd } = getWeekRange(1); // 先週
+
+      try {
+        const q = query(
+          collection(db, "driver_payments"),
+          where("user_id", "==", profile.userId),
+          orderBy("created_at", "asc")
+        );
+
+        const snapshot = await getDocs(q);
+        const data = snapshot.docs.map((doc) => {
+          const d = doc.data();
+          return {
+            id: doc.id,
+            mileage: d.mileage,
+            highway_fee: d.highway_fee,
+            hour: d.hour,
+            amount: d.amount,
+            created_at:
+              d.created_at instanceof Timestamp
+                ? d.created_at.toDate()
+                : new Date(d.created_at.seconds * 1000),
+          };
+        });
+
+        // 🔹 欠けてるデータは除外
+        const filtered = data.filter(
+          (d) =>
+            d.mileage !== undefined &&
+            d.highway_fee !== undefined &&
+            d.hour !== undefined &&
+            d.amount !== undefined
+        );
+
+        // 🔹 今週と先週をそれぞれ抽出
+        const thisWeek = filtered.filter(
+          (d) => d.created_at >= startOfWeek && d.created_at <= endOfWeek
+        );
+        const lastWeek = filtered.filter(
+          (d) => d.created_at >= lastStart && d.created_at <= lastEnd
+        );
+
+        // 🔹 条件処理
+        const thisWeekResult =
+          thisWeek.length >= 2 ? thisWeek.slice(0, -1) : thisWeek;
+        const lastWeekResult =
+          lastWeek.length > 0 ? [lastWeek[lastWeek.length - 1]] : [];
+
+        // 🔹 一つにまとめて表示
+        const combined = [
+          ...thisWeekResult.map((d) => ({ ...d, week: "今週" })),
+          ...lastWeekResult.map((d) => ({ ...d, week: "先週" })),
+        ];
+
+        setPayments(combined);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchWeekData();
 
     fetchMonthData();
   }, [profile, currentMonth]);
@@ -166,6 +243,19 @@ function Summary({
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
     );
 
+  const thStyle = {
+    border: "1px solid #ccc",
+    padding: "8px",
+    fontWeight: "bold",
+    color: "#333",
+  };
+
+  const tdStyle = {
+    border: "1px solid #ddd",
+    padding: "8px",
+    color: "#555",
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -183,6 +273,54 @@ function Summary({
             <span className="font-semibold">{profile.displayName}</span> さん
           </p>
         )}
+        <div
+          style={{
+            borderRadius: "12px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            padding: "16px",
+            width: "100%",
+            maxWidth: "600px",
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              textAlign: "center",
+            }}
+          >
+            <thead>
+              <tr style={{ backgroundColor: "#e5e7eb" }}>
+                <th style={thStyle}>週</th>
+                <th style={thStyle}>日付</th>
+                <th style={thStyle}>走行距離</th>
+                <th style={thStyle}>高速料金</th>
+                <th style={thStyle}>遅刻時間</th>
+                <th style={thStyle}>精算額</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.length > 0 ? (
+                payments.map((p) => (
+                  <tr key={p.id}>
+                    <td style={tdStyle}>{p.week}</td>
+                    <td style={tdStyle}>{p.created_at.toLocaleDateString()}</td>
+                    <td style={tdStyle}>{p.mileage} km</td>
+                    <td style={tdStyle}>{p.highway_fee} 円</td>
+                    <td style={tdStyle}>{p.hour} h</td>
+                    <td style={tdStyle}>{p.amount} 円</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} style={{ ...tdStyle, color: "#999" }}>
+                    データがありません
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
         <div style={{ marginBottom: 20, paddingLeft: 16 }}>
           <button onClick={prevMonth} className="px-2 py-1 bg-gray-300 rounded">
