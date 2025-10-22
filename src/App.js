@@ -7,6 +7,7 @@ import {
   where,
   getDocs,
   addDoc,
+  setDoc,
   updateDoc,
   doc,
   Timestamp,
@@ -25,7 +26,12 @@ function App() {
   });
   const [isUpdate, setIsUpdate] = useState(false);
   const [recordId, setRecordId] = useState(null);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState({
+    Allowance: "",
+    amount: 0,
+    display_name: "",
+    user_id: "",
+  });
   const navigator = useNavigate();
 
   // LIFF初期化 & プロフィール取得
@@ -82,12 +88,24 @@ function App() {
         collection(db, "user"),
         where("user_id", "==", profile.userId)
       );
+      const docsUser = await getDocs(u);
+
+      if (docsUser.empty) {
+        await setDoc(doc(db, "user", profile.userId), {
+          display_name: profile.displayName,
+          user_id: profile.userId,
+        });
+      } else {
+        const resUser = docsUser.docs[0].data();
+        setUser({
+          Allowance: resUser.Allowance,
+          amount: resUser.amount,
+          display_name: resUser.display_name,
+          user_id: resUser.user_id,
+        });
+      }
 
       const docsDriverPayment = await getDocs(q);
-      const docsUser = await getDocs(u);
-      const resUser = docsUser.docs[0].data();
-      setUser(resUser);
-
       if (!docsDriverPayment.empty) {
         const resDriverPayment = docsDriverPayment.docs[0];
         const data = resDriverPayment.data();
@@ -129,13 +147,6 @@ function App() {
       amount: formData.amount,
       created_at: Timestamp.now(),
     };
-
-    if (!user) {
-      await addDoc(collection(db, "user"), {
-        display_name: profile.displayName,
-        user_id: profile.userId,
-      });
-    }
 
     try {
       if (isUpdate && recordId) {
