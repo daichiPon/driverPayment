@@ -50,6 +50,7 @@ function AdminSummary() {
         {/* 選択されたユーザーのSummary */}
         {selectedUser ? (
           <Summary
+            key={selectedUser.user_id}
             overrideUserId={selectedUser.user_id}
             displayName={selectedUser.name}
             isAdminView

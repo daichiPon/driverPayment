@@ -109,7 +109,7 @@ function Summary({
       try {
         const q = query(
           collection(db, "driver_payments"),
-          where("user_id", "==", profile.userId),
+          where("user_id", "==", overrideUserId || profile.userId),
           orderBy("created_at", "asc")
         );
 
