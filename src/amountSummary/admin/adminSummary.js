@@ -47,30 +47,6 @@ function AdminSummary() {
           paddingLeft: "32px",
         }}
       >
-        {/* 選択されたユーザーのSummary */}
-        {selectedUser ? (
-          <Summary
-            key={selectedUser.user_id}
-            overrideUserId={selectedUser.user_id}
-            displayName={selectedUser.name}
-            isAdminView
-          />
-        ) : (
-          <p className="text-gray-500">ユーザーを選択してください。</p>
-        )}
-      </div>
-      {/* ドライバー一覧 */}
-      <div
-        style={{
-          display: "flex",
-          paddingLift: "8px",
-          flexWrap: "wrap",
-          gap: "8px",
-          marginBottom: "24px",
-          justifyContent: "flex-start",
-          paddingLeft: "32px",
-        }}
-      >
         {drivers.map((driver) => {
           const isSelected = selectedUser?.user_id === driver.user_id;
           return (
@@ -104,6 +80,30 @@ function AdminSummary() {
           );
         })}
       </div>
+      <div
+        style={{
+          display: "flex",
+          paddingLift: "8px",
+          flexWrap: "wrap",
+          gap: "8px",
+          marginBottom: "24px",
+          justifyContent: "flex-start",
+          paddingLeft: "32px",
+        }}
+      >
+        {/* 選択されたユーザーのSummary */}
+        {selectedUser ? (
+          <Summary
+            key={selectedUser.user_id}
+            overrideUserId={selectedUser.user_id}
+            displayName={selectedUser.name}
+            isAdminView
+          />
+        ) : (
+          <p className="text-gray-500">ユーザーを選択してください</p>
+        )}
+      </div>
+      {/* ドライバー一覧 */}
     </div>
   );
 }
