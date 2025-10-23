@@ -10,15 +10,13 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
-// 曜日リスト
 const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 
 const ConfirmShift = () => {
   const [loading, setLoading] = useState(true);
-  const [desiredShifts, setDesiredShifts] = useState([]); // 希望シフト
-  const [confirmedShifts, setConfirmedShifts] = useState({}); // 確定シフト
+  const [desiredShifts, setDesiredShifts] = useState([]);
+  const [confirmedShifts, setConfirmedShifts] = useState({});
 
-  // 来週の月曜
   const getWeekStart = (date = new Date(), offset = 1) => {
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
@@ -32,7 +30,6 @@ const ConfirmShift = () => {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
 
-  // 希望シフト＋確定シフトを取得
   useEffect(() => {
     const fetchShifts = async () => {
       try {
@@ -64,7 +61,8 @@ const ConfirmShift = () => {
             confirmedData[data.user_id][day] = data[day] || "×";
           });
         });
-        // 初期値として存在しない場合は希望シフトをコピー
+
+        // 存在しない場合は希望を初期値としてコピー
         desiredData.forEach((u) => {
           if (!confirmedData[u.user_id]) {
             confirmedData[u.user_id] = {};
@@ -85,22 +83,22 @@ const ConfirmShift = () => {
     fetchShifts();
   }, []);
 
-  // 確定シフト変更ハンドラ
-  const handleChange = (userId, day, value) => {
+  const handleChange = (userId, day) => {
     setConfirmedShifts((prev) => ({
       ...prev,
-      [userId]: { ...prev[userId], [day]: value },
+      [userId]: {
+        ...prev[userId],
+        [day]: prev[userId][day] === "〇" ? "×" : "〇",
+      },
     }));
   };
 
-  // 保存処理
   const handleSave = async () => {
     try {
       const weekStr = weekStart.toISOString();
 
       for (const user of desiredShifts) {
         const userId = user.user_id;
-
         const payload = {
           user_id: userId,
           display_name: user.display_name || "",
@@ -132,69 +130,123 @@ const ConfirmShift = () => {
   if (loading) return <p>読み込み中...</p>;
 
   return (
-    <div style={{ padding: "20px", maxWidth: "900px", margin: "0 auto" }}>
-      <h2>
-        確定シフト設定 ({formatDate(weekStart)}〜{formatDate(weekEnd)})
-      </h2>
-      <p> 左：希望シフト　右確定シフト</p>
-      <table style={{ borderCollapse: "collapse", width: "100%" }}>
-        <thead>
-          <tr>
-            <th style={{ border: "1px solid #ccc", padding: "8px" }}>ユーザ</th>
-            {weekdays.map((day) => (
-              <th
-                key={day}
-                colSpan={2}
-                style={{ border: "1px solid #ccc", padding: "8px" }}
-              >
-                {day}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {desiredShifts.map((user) => (
-            <tr key={user.user_id}>
-              <td style={{ border: "1px solid #ccc", padding: "8px" }}>
-                {user.display_name || user.user_id}
-              </td>
+    <div
+      style={{
+        padding: "16px",
+        fontFamily: "sans-serif",
+        background: "#f9fafb",
+        minHeight: "100vh",
+      }}
+    >
+      <div
+        style={{
+          background: "#fff",
+          padding: "16px",
+          borderRadius: "12px",
+          boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+          marginBottom: "16px",
+          textAlign: "center",
+        }}
+      >
+        <h2 style={{ margin: "0 0 8px" }}>確定シフト設定</h2>
+        <p style={{ color: "#555", margin: 0 }}>
+          {formatDate(weekStart)}〜{formatDate(weekEnd)}
+        </p>
+        <p style={{ fontSize: "13px", color: "#888" }}>
+          左：希望　右：確定（タップで切替）
+        </p>
+      </div>
+
+      <div style={{ overflowX: "auto" }}>
+        <table
+          style={{
+            borderCollapse: "collapse",
+            width: "100%",
+            background: "#fff",
+            borderRadius: "12px",
+            overflow: "hidden",
+            boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+          }}
+        >
+          <thead style={{ background: "#88949eff", color: "white" }}>
+            <tr>
+              <th style={{ padding: "8px", whiteSpace: "nowrap" }}>ユーザー</th>
               {weekdays.map((day) => (
-                <React.Fragment key={day}>
-                  <td
-                    style={{
-                      border: "1px solid #ccc",
-                      padding: "8px",
-                      textAlign: "center",
-                    }}
-                  >
-                    {user[day] || "×"}
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid #ccc",
-                      padding: "8px",
-                      textAlign: "center",
-                    }}
-                  >
-                    <select
-                      value={confirmedShifts[user.user_id][day]}
-                      onChange={(e) =>
-                        handleChange(user.user_id, day, e.target.value)
-                      }
-                    >
-                      <option value="〇">〇</option>
-                      <option value="×">×</option>
-                    </select>
-                  </td>
-                </React.Fragment>
+                <th key={day} colSpan={2} style={{ padding: "8px" }}>
+                  {day}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {desiredShifts.map((user) => (
+              <tr key={user.user_id}>
+                <td
+                  style={{
+                    padding: "8px",
+                    fontWeight: "bold",
+                    background: "#f0f2f5",
+                    textAlign: "center",
+                  }}
+                >
+                  {user.display_name || user.user_id}
+                </td>
+                {weekdays.map((day) => (
+                  <React.Fragment key={day}>
+                    <td
+                      style={{
+                        padding: "8px",
+                        textAlign: "center",
+                        background: "#f9f9f9",
+                        color: user[day] === "〇" ? "#4CAF50" : "#f44336",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {user[day] || "×"}
+                    </td>
+                    <td
+                      onClick={() => handleChange(user.user_id, day)}
+                      style={{
+                        padding: "8px",
+                        textAlign: "center",
+                        cursor: "pointer",
+                        background:
+                          confirmedShifts[user.user_id][day] === "〇"
+                            ? "#4CAF50"
+                            : "#f44336",
+                        color: "white",
+                        borderRadius: "4px",
+                        transition: "0.2s",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {confirmedShifts[user.user_id][day]}
+                    </td>
+                  </React.Fragment>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       <button
-        style={{ marginTop: "20px", padding: "10px 20px", cursor: "pointer" }}
         onClick={handleSave}
+        style={{
+          position: "fixed",
+          bottom: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          backgroundColor: "#2196F3",
+          color: "white",
+          border: "none",
+          padding: "12px 24px",
+          borderRadius: "30px",
+          fontSize: "16px",
+          fontWeight: "bold",
+          boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
+          cursor: "pointer",
+        }}
       >
         保存
       </button>

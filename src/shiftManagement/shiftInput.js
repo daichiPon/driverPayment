@@ -11,7 +11,6 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
-// 曜日リスト
 const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 
 const ShiftInput = () => {
@@ -21,7 +20,6 @@ const ShiftInput = () => {
     weekdays.reduce((acc, day) => ({ ...acc, [day]: "×" }), {})
   );
 
-  // LIFF初期化
   useEffect(() => {
     const initLiff = async () => {
       try {
@@ -41,23 +39,19 @@ const ShiftInput = () => {
     initLiff();
   }, []);
 
-  // 来週のシフトをFirestoreから取得
   useEffect(() => {
     const fetchWeek = async () => {
       if (!profile) return;
 
       try {
-        const weekStart = getWeekStart(new Date(), 1); // 来週の月曜
-        const weekEnd = getWeekEnd(new Date(), 1); // 来週の日曜
-
-        const startStr = weekStart.toISOString();
-        const endStr = weekEnd.toISOString();
+        const weekStart = getWeekStart(new Date(), 1);
+        const weekEnd = getWeekEnd(new Date(), 1);
 
         const q = query(
           collection(db, "desired_shift"),
           where("user_id", "==", profile.userId),
-          where("week", ">=", startStr),
-          where("week", "<=", endStr)
+          where("week", ">=", weekStart.toISOString()),
+          where("week", "<=", weekEnd.toISOString())
         );
 
         const querySnapshot = await getDocs(q);
@@ -74,29 +68,28 @@ const ShiftInput = () => {
     fetchWeek();
   }, [profile]);
 
-  // 曜日シフト変更
-  const handleChange = (day, value) => {
-    setShifts((prev) => ({ ...prev, [day]: value }));
+  const handleChange = (day) => {
+    setShifts((prev) => ({
+      ...prev,
+      [day]: prev[day] === "〇" ? "×" : "〇",
+    }));
   };
 
-  // 提出ハンドラ
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!profile) return;
 
-    const weekStart = getWeekStart(new Date(), 1); // 来週の月曜
+    const weekStart = getWeekStart(new Date(), 1);
     const weekStr = weekStart.toISOString();
 
     const payload = {
       user_id: profile.userId,
       display_name: profile.displayName,
       week: weekStr,
-      ...shifts, // 曜日ごとの〇/×
+      ...shifts,
       created_at: Timestamp.now(),
     };
 
     try {
-      // 既存データがあるかチェック
       const q = query(
         collection(db, "desired_shift"),
         where("user_id", "==", profile.userId),
@@ -105,12 +98,9 @@ const ShiftInput = () => {
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        // 更新
-        const docRef = querySnapshot.docs[0].ref;
-        await updateDoc(docRef, payload);
+        await updateDoc(querySnapshot.docs[0].ref, payload);
         alert("シフトを更新しました！");
       } else {
-        // 新規作成
         await addDoc(collection(db, "desired_shift"), payload);
         alert("シフトを提出しました！");
       }
@@ -120,7 +110,6 @@ const ShiftInput = () => {
     }
   };
 
-  // 来週の月曜を取得
   function getWeekStart(date = new Date(), offset = 1) {
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
@@ -129,7 +118,6 @@ const ShiftInput = () => {
     return monday;
   }
 
-  // 来週の日曜を取得
   function getWeekEnd(date = new Date(), offset = 1) {
     const monday = getWeekStart(date, offset);
     const sunday = new Date(monday);
@@ -144,49 +132,80 @@ const ShiftInput = () => {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div style={{ padding: "20px", maxWidth: "500px", margin: "0 auto" }}>
-      <h2>
-        来週のシフト入力 ({formatDate(weekStart)}〜{formatDate(weekEnd)})
+    <div
+      style={{
+        padding: "16px",
+        maxWidth: "400px",
+        margin: "0 auto",
+        fontFamily: "sans-serif",
+      }}
+    >
+      <h2 style={{ textAlign: "center", marginBottom: "8px" }}>
+        来週のシフト入力
       </h2>
-      <table style={{ borderCollapse: "collapse", width: "100%" }}>
-        <thead>
-          <tr>
-            {weekdays.map((day) => (
-              <th
-                key={day}
-                style={{ border: "1px solid #ccc", padding: "8px" }}
-              >
-                {day}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {weekdays.map((day) => (
-              <td
-                key={day}
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "8px",
-                  textAlign: "center",
-                }}
-              >
-                <select
-                  value={shifts[day]}
-                  onChange={(e) => handleChange(day, e.target.value)}
-                >
-                  <option value="〇">〇</option>
-                  <option value="×">×</option>
-                </select>
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
+      <p style={{ textAlign: "center", color: "#666", marginBottom: "12px" }}>
+        {formatDate(weekStart)}〜{formatDate(weekEnd)}
+      </p>
+
+      {profile && (
+        <div
+          style={{
+            textAlign: "center",
+            fontWeight: "bold",
+            color: "#333",
+            marginBottom: "16px",
+          }}
+        >
+          {profile.displayName} さん
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: "8px",
+          marginBottom: "60px",
+        }}
+      >
+        {weekdays.map((day) => (
+          <div
+            key={day}
+            onClick={() => handleChange(day)}
+            style={{
+              background: shifts[day] === "〇" ? "#4CAF50" : "#f44336",
+              color: "white",
+              textAlign: "center",
+              padding: "14px 0",
+              borderRadius: "10px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+              transition: "background 0.3s",
+            }}
+          >
+            {day}：{shifts[day]}
+          </div>
+        ))}
+      </div>
+
       <button
-        style={{ marginTop: "20px", padding: "10px 20px", cursor: "pointer" }}
         onClick={handleSubmit}
+        style={{
+          position: "fixed",
+          bottom: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          backgroundColor: "#2196F3",
+          color: "white",
+          border: "none",
+          padding: "12px 24px",
+          borderRadius: "30px",
+          fontSize: "16px",
+          fontWeight: "bold",
+          boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
+          cursor: "pointer",
+        }}
       >
         提出
       </button>
