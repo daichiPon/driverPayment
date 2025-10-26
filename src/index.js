@@ -7,6 +7,7 @@ import Summary from "./amountSummary/summary/summary";
 import AdminSummary from "./amountSummary/summary/adminSummary";
 import ShiftInput from "./shiftManagement/shiftInput";
 import AdminShift from "./shiftManagement/adminShift";
+import ConfirmShiftView from "./shiftManagement/confirmationShift";
 import UserData from "./amountSummary/User/userData";
 import reportWebVitals from "./reportWebVitals";
 
@@ -21,6 +22,7 @@ root.render(
         <Route path="/userData" element={<UserData />} />
         <Route path="/ShiftInput" element={<ShiftInput />} />
         <Route path="/AdminShift" element={<AdminShift />} />
+        <Route path="/ConfirmShift" element={<ConfirmShiftView />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

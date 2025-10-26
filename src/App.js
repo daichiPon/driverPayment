@@ -406,6 +406,17 @@ function App() {
             >
               シフト管理
             </button>
+            <button
+              onClick={() => navigator("/ConfirmShift")}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #ccc",
+                cursor: "pointer",
+              }}
+            >
+              シフト確認
+            </button>
           </div>
         </div>
       </main>
