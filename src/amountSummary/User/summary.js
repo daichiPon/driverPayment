@@ -236,13 +236,6 @@ export default function Summary({
 
   return (
     <div style={containerStyle}>
-      {profile && (
-        <p style={{ marginBottom: 8, color: "#555", fontSize: 14 }}>
-          ようこそ{" "}
-          <span style={{ fontWeight: "bold" }}>{profile.displayName}</span> さん
-        </p>
-      )}
-
       {/* 📊 週次テーブル */}
       <div style={cardStyle}>
         <p style={headerText}>週別精算データ</p>

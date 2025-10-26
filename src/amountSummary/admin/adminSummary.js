@@ -17,7 +17,7 @@ function AdminSummary() {
   // ドライバー一覧を取得
   useEffect(() => {
     const fetchDrivers = async () => {
-      const snapshot = await getDocs(collection(db, "driver_payments"));
+      const snapshot = await getDocs(collection(db, "user"));
       const all = snapshot.docs.map((doc) => doc.data());
       // 重複除去
       const uniqueDrivers = Array.from(
@@ -80,17 +80,7 @@ function AdminSummary() {
           );
         })}
       </div>
-      <div
-        style={{
-          display: "flex",
-          paddingLift: "8px",
-          flexWrap: "wrap",
-          gap: "8px",
-          marginBottom: "24px",
-          justifyContent: "flex-start",
-          paddingLeft: "32px",
-        }}
-      >
+      <div>
         {/* 選択されたユーザーのSummary */}
         {selectedUser ? (
           <Summary
