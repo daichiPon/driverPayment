@@ -12,7 +12,7 @@ import {
 
 const weekdays = ["全曜日", "月", "火", "水", "木", "金", "土", "日"];
 
-const ConfirmShift = () => {
+const AdminShift = () => {
   const [loading, setLoading] = useState(true);
   const [desiredShifts, setDesiredShifts] = useState([]);
   const [confirmedShifts, setConfirmedShifts] = useState({});
@@ -416,4 +416,4 @@ const ConfirmShift = () => {
   );
 };
 
-export default ConfirmShift;
+export default AdminShift;

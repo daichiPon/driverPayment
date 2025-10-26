@@ -396,7 +396,7 @@ function App() {
               シフト
             </button>
             <button
-              onClick={() => navigator("/ConfirmShift")}
+              onClick={() => navigator("/AdminShift")}
               style={{
                 padding: "8px 12px",
                 borderRadius: "6px",
