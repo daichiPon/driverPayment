@@ -3,11 +3,11 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
 import App from "./App";
-import Summary from "./amountSummary/User/summary";
-import AdminSummary from "./amountSummary/admin/adminSummary";
+import Summary from "./amountSummary/summary/summary";
+import AdminSummary from "./amountSummary/summary/adminSummary";
 import ShiftInput from "./shiftManagement/shiftInput";
 import AdminShift from "./shiftManagement/adminShift";
-import UserData from "./amountSummary/admin/userData";
+import UserData from "./amountSummary/User/userData";
 import reportWebVitals from "./reportWebVitals";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));

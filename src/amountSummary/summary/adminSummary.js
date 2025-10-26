@@ -8,7 +8,7 @@ import {
   orderBy,
   Timestamp,
 } from "firebase/firestore";
-import Summary from "../User/summary"; // 既存のSummaryを再利用（少し改修が必要）
+import Summary from "./summary"; // 既存のSummaryを再利用（少し改修が必要）
 
 function AdminSummary() {
   const [drivers, setDrivers] = useState([]);
