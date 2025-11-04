@@ -60,7 +60,7 @@ function UserData() {
   const handleAmountChange = (index, value) => {
     setUsers((prev) => {
       const copy = [...prev];
-      copy[index].amount = Number(value);
+      copy[index].amount = value === "" ? "" : Number(value);
       return copy;
     });
   };
@@ -175,8 +175,9 @@ function UserData() {
                 >
                   <input
                     type="number"
-                    value={user.amount || 0}
+                    value={user.amount}
                     onChange={(e) => handleAmountChange(index, e.target.value)}
+                    placeholder="例: 8000"
                     style={{
                       width: "95%",
                       padding: "4px",
