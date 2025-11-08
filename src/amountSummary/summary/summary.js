@@ -125,6 +125,7 @@ export default function Summary({
           };
         });
 
+        // --- 不完全データを除外 ---
         const filtered = data.filter(
           (d) =>
             d.mileage !== undefined &&
@@ -133,22 +134,40 @@ export default function Summary({
             d.amount !== undefined
         );
 
-        const thisWeek = filtered.filter(
-          (d) => d.created_at >= startOfWeek && d.created_at <= endOfWeek
-        );
         const lastWeek = filtered.filter(
           (d) => d.created_at >= lastStart && d.created_at <= lastEnd
         );
 
-        const thisWeekResult =
-          thisWeek.length >= 2 ? thisWeek.slice(0, -1) : thisWeek;
-        const lastWeekResult =
-          lastWeek.length > 0 ? [lastWeek[lastWeek.length - 1]] : [];
+        // 🔽 今週・先週以外のデータ（＝過去データ）
+        const others = filtered.filter(
+          (d) => d.created_at < lastStart || d.created_at > endOfWeek
+        );
 
-        const combined = [
-          ...thisWeekResult.map((d) => ({ ...d, week: "今週" })),
-          ...lastWeekResult.map((d) => ({ ...d, week: "先週" })),
-        ];
+        // --- 今日に最も近いデータを取得（今週・先週以外） ---
+        const today = new Date();
+        const nearest = others.length
+          ? others.reduce((prev, curr) => {
+              const diffPrev = Math.abs(prev.created_at - today);
+              const diffCurr = Math.abs(curr.created_at - today);
+              return diffCurr < diffPrev ? curr : prev;
+            })
+          : null;
+
+        // --- 条件分岐 ---
+        let combined = [];
+
+        if (lastWeek.length <= 1) {
+          // ✅ 先週が1件または0件のとき
+          combined = [...(nearest ? [{ ...nearest, week: "その他" }] : [])];
+        } else {
+          // ✅ 先週が2件以上のとき
+          const lastWeekExcludingLast = lastWeek.slice(0, -1); // 最後の1日を除く
+          combined = [
+            ...lastWeekExcludingLast.map((d) => ({ ...d, week: "先週" })),
+            ...(nearest ? [{ ...nearest, week: "その他" }] : []),
+          ];
+        }
+
         setPayments(combined);
       } catch (err) {
         console.error(err);
