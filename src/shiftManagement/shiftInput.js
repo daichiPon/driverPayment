@@ -81,12 +81,17 @@ const ShiftInput = () => {
     const weekStart = getWeekStart(new Date(), 1);
     const weekStr = weekStart.toISOString();
 
+    const now = new Date();
+    const threeMonthsLater = new Date(now);
+    threeMonthsLater.setMonth(now.getMonth() + 3);
+
     const payload = {
       user_id: profile.userId,
       display_name: profile.displayName,
       week: weekStr,
       ...shifts,
       created_at: Timestamp.now(),
+      expireAt: threeMonthsLater,
     };
 
     try {

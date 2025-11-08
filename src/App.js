@@ -138,6 +138,10 @@ function App() {
       user.amount +
       Number(formData.hour) * perHour;
 
+    const now = new Date();
+    const sixMonthsLater = new Date(now);
+    sixMonthsLater.setMonth(now.getMonth() + 6);
+
     const payload = {
       user_id: profile.userId,
       display_name: profile.displayName,
@@ -146,6 +150,7 @@ function App() {
       hour: formData.hour || 0,
       amount: formData.amount,
       created_at: Timestamp.now(),
+      expireAt: sixMonthsLater,
     };
 
     try {

@@ -99,6 +99,10 @@ const AdminShift = () => {
     try {
       const weekStr = weekStart.toISOString();
 
+      const now = new Date();
+      const threeMonthsLater = new Date(now);
+      threeMonthsLater.setMonth(now.getMonth() + 3);
+
       for (const user of desiredShifts) {
         const userId = user.user_id;
         const payload = {
@@ -107,6 +111,7 @@ const AdminShift = () => {
           week: weekStr,
           ...confirmedShifts[userId],
           updated_at: Timestamp.now(),
+          expireAt: threeMonthsLater,
         };
 
         const q = query(
