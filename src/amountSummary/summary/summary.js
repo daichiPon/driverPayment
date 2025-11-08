@@ -138,33 +138,34 @@ export default function Summary({
           (d) => d.created_at >= lastStart && d.created_at <= lastEnd
         );
 
-        // 🔽 今週・先週以外のデータ（＝過去データ）
-        const others = filtered.filter(
-          (d) => d.created_at < lastStart || d.created_at > endOfWeek
-        );
+        // 今週・先週より前のデータ
+        const others = filtered.filter((d) => d.created_at < lastStart);
 
-        // --- 今日に最も近いデータを取得（今週・先週以外） ---
+        // 今日に最も近いデータを取得するために日付差でソート
         const today = new Date();
-        const nearest = others.length
-          ? others.reduce((prev, curr) => {
-              const diffPrev = Math.abs(prev.created_at - today);
-              const diffCurr = Math.abs(curr.created_at - today);
-              return diffCurr < diffPrev ? curr : prev;
-            })
-          : null;
-
+        const sortedByProximity = [...others].sort(
+          (a, b) =>
+            Math.abs(a.created_at.getTime() - today.getTime()) -
+            Math.abs(b.created_at.getTime() - today.getTime())
+        );
+        console.log(JSON.stringify(sortedByProximity));
         // --- 条件分岐 ---
         let combined = [];
 
-        if (lastWeek.length <= 1) {
-          // ✅ 先週が1件または0件のとき
-          combined = [...(nearest ? [{ ...nearest, week: "その他" }] : [])];
+        if (lastWeek.length === 0) {
+          // ✅ 先週0件 → 二番目に今日に近いデータを取得
+          combined = [{ ...sortedByProximity[1], week: "その他" }];
+        } else if (lastWeek.length === 1) {
+          // ✅ 先週1件 → 今日に最も近いデータ1件を取得
+          combined = [{ ...sortedByProximity[0], week: "その他" }];
         } else {
-          // ✅ 先週が2件以上のとき
-          const lastWeekExcludingLast = lastWeek.slice(0, -1); // 最後の1日を除く
+          // ✅ 先週2件以上 → 最後の1日を除いた先週 + 今日に最も近いデータ1件
+          const lastWeekExcludingLast = lastWeek.slice(0, -1);
           combined = [
             ...lastWeekExcludingLast.map((d) => ({ ...d, week: "先週" })),
-            ...(nearest ? [{ ...nearest, week: "その他" }] : []),
+            ...(sortedByProximity.length > 0
+              ? [{ ...sortedByProximity[0], week: "その他" }]
+              : []),
           ];
         }
 
