@@ -11,16 +11,13 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
-// 曜日リスト
 const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
-// 店舗リスト
-const locations = ["北新地", "日本橋"];
+const locations = ["北新地", "日本橋"]; // 🔹 選択肢
 
 const ShiftInput = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // 各曜日の初期データ（〇×と店舗名）
+  const [userLocation, setUserLocation] = useState("");
   const [shifts, setShifts] = useState(
     weekdays.reduce(
       (acc, day) => ({ ...acc, [day]: { status: "×", location: "" } }),
@@ -38,7 +35,6 @@ const ShiftInput = () => {
           return;
         }
         const p = await liff.getProfile();
-        console.log('p',p)
         setProfile(p);
       } catch (err) {
         console.error("LIFF init error:", err);
@@ -49,24 +45,55 @@ const ShiftInput = () => {
     initLiff();
   }, []);
 
-  // ✅ Firestoreから今週のシフトを取得
+  // ✅ userテーブルから勤務地取得
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      if (!profile) return;
+      try {
+        const q = query(
+          collection(db, "user"),
+          where("user_id", "==", profile.userId)
+        );
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const userData = snapshot.docs[0].data();
+          if (userData.location) {
+            setUserLocation(userData.location);
+
+            // 🔹 初期状態に勤務地をセット
+            setShifts((prev) =>
+              weekdays.reduce((acc, day) => {
+                acc[day] = {
+                  ...prev[day],
+                  location: userData.location,
+                };
+                return acc;
+              }, {})
+            );
+          }
+        }
+      } catch (err) {
+        console.error("ユーザー情報取得エラー:", err);
+      }
+    };
+    fetchUserInfo();
+  }, [profile]);
+
+  // ✅ Firestoreから今週のシフト取得
   useEffect(() => {
     const fetchWeek = async () => {
       if (!profile) return;
-
       try {
         const weekStart = getWeekStart(new Date(), 1);
         const weekEnd = getWeekEnd(new Date(), 1);
-
         const q = query(
           collection(db, "desired_shift"),
           where("user_id", "==", profile.userId),
           where("week", ">=", weekStart.toISOString()),
           where("week", "<=", weekEnd.toISOString())
         );
-
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc) => {
+        const snapshot = await getDocs(q);
+        snapshot.forEach((doc) => {
           const data = doc.data();
           if (data.shifts) {
             setShifts(data.shifts);
@@ -79,27 +106,28 @@ const ShiftInput = () => {
     fetchWeek();
   }, [profile]);
 
-  // ✅ 曜日タップで〇⇄×切り替え
+  // ✅ 〇×切り替え
   const handleChangeStatus = (day) => {
     setShifts((prev) => ({
       ...prev,
       [day]: {
         ...prev[day],
         status: prev[day].status === "〇" ? "×" : "〇",
-        location: prev[day].status === "〇" ? "" : prev[day].location, // ×にしたら店舗リセット
+        location:
+          prev[day].status === "〇" ? "" : prev[day].location || userLocation,
       },
     }));
   };
 
-  // ✅ 店舗変更
-  const handleLocationChange = (day, location) => {
+  // ✅ 勤務地変更
+  const handleChangeLocation = (day, value) => {
     setShifts((prev) => ({
       ...prev,
-      [day]: { ...prev[day], location },
+      [day]: { ...prev[day], location: value },
     }));
   };
 
-  // ✅ Firestoreへ登録
+  // ✅ Firestoreに保存
   const handleSubmit = async () => {
     if (!profile) return;
 
@@ -114,7 +142,7 @@ const ShiftInput = () => {
       user_id: profile.userId,
       display_name: profile.displayName,
       week: weekStr,
-      shifts, // ← 曜日ごとのオブジェクト構造
+      shifts,
       created_at: Timestamp.now(),
       expireAt: threeMonthsLater,
     };
@@ -140,7 +168,7 @@ const ShiftInput = () => {
     }
   };
 
-  // ✅ 週の開始日（月）と終了日（日）を取得
+  // ✅ 週の開始・終了日
   function getWeekStart(date = new Date(), offset = 1) {
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
@@ -162,7 +190,7 @@ const ShiftInput = () => {
 
   if (loading) return <p>Loading...</p>;
 
-  // ✅ UI表示部分
+  // ✅ UI部分
   return (
     <div
       style={{
@@ -185,76 +213,68 @@ const ShiftInput = () => {
             textAlign: "center",
             fontWeight: "bold",
             color: "#333",
-            marginBottom: "16px",
+            marginBottom: "8px",
           }}
         >
           {profile.displayName} さん
         </div>
       )}
 
-      {/* 曜日ごとのシフト入力ブロック */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-          marginBottom: "80px",
-        }}
-      >
-        {weekdays.map((day) => (
+      <p style={{ textAlign: "center", color: "#666", marginBottom: "16px" }}>
+        登録勤務地：<strong>{userLocation}</strong>
+      </p>
+
+      {weekdays.map((day) => (
+        <div
+          key={day}
+          style={{
+            background: "#f9f9f9",
+            borderRadius: "12px",
+            padding: "12px",
+            marginBottom: "12px",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+          }}
+        >
           <div
-            key={day}
+            onClick={() => handleChangeStatus(day)}
             style={{
-              background: "#f9f9f9",
-              borderRadius: "12px",
+              background:
+                shifts[day].status === "〇" ? "#4CAF50" : "#f44336",
+              color: "white",
+              textAlign: "center",
               padding: "12px",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+              borderRadius: "8px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              transition: "background 0.3s",
             }}
           >
-            {/* 出勤希望 〇× 切り替え */}
-            <div
-              onClick={() => handleChangeStatus(day)}
-              style={{
-                background:
-                  shifts[day].status === "〇" ? "#4CAF50" : "#f44336",
-                color: "white",
-                textAlign: "center",
-                padding: "12px",
-                borderRadius: "8px",
-                fontWeight: "bold",
-                cursor: "pointer",
-                transition: "background 0.3s",
-              }}
-            >
-              {day}：{shifts[day].status}
-            </div>
+            {day}：{shifts[day].status}
+          </div>
 
-            {/* 出勤の場合のみ店舗を選択可能 */}
-            {shifts[day].status === "〇" && (
+          {shifts[day].status === "〇" && (
+            <div style={{ marginTop: "10px", textAlign: "center" }}>
               <select
                 value={shifts[day].location}
-                onChange={(e) => handleLocationChange(day, e.target.value)}
+                onChange={(e) => handleChangeLocation(day, e.target.value)}
                 style={{
-                  width: "100%",
-                  marginTop: "8px",
-                  padding: "8px",
+                  padding: "8px 12px",
                   borderRadius: "8px",
                   border: "1px solid #ccc",
+                  width: "80%",
                 }}
               >
-                <option value="">店舗を選択</option>
                 {locations.map((loc) => (
                   <option key={loc} value={loc}>
                     {loc}
                   </option>
                 ))}
               </select>
-            )}
-          </div>
-        ))}
-      </div>
+            </div>
+          )}
+        </div>
+      ))}
 
-      {/* 提出ボタン */}
       <button
         onClick={handleSubmit}
         style={{
