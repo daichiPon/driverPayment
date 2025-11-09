@@ -9,56 +9,72 @@ const ConfirmShiftView = () => {
   const [confirmedShifts, setConfirmedShifts] = useState([]);
   const [weekStart, setWeekStart] = useState(null);
   const [weekEnd, setWeekEnd] = useState(null);
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = 今週, -1 = 先週
 
-  // 今週の月曜日を取得
-  const getWeekStart = (date = new Date(), offset = 1) => {
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
-    const monday = new Date(date.setDate(diff));
+  // 週の開始（月曜）を取得
+  const getWeekStart = (date = new Date(), offset = 0) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
+    const monday = new Date(d.setDate(diff));
     monday.setHours(0, 0, 0, 0);
     return monday;
   };
 
+  // 週の終了（日曜）を取得
+  const getWeekEnd = (date = new Date(), offset = 0) => {
+    const monday = getWeekStart(date, offset);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return sunday;
+  };
+
+  // 日付フォーマット（例：11/11）
   const formatDate = (date) => `${date.getMonth() + 1}/${date.getDate()}`;
 
-  useEffect(() => {
-    const fetchConfirmed = async () => {
-      try {
-        const ws = getWeekStart();
-        const weekStr = ws.toISOString();
-        const queryRef = query(
-          collection(db, "confirmed_shift"),
-          where("week", "==", weekStr)
-        );
-        const snapshot = await getDocs(queryRef);
+  // Firestoreからシフト取得
+  const fetchConfirmed = async (offset) => {
+    setLoading(true);
+    try {
+      const ws = getWeekStart(new Date(), offset);
+      const weekStr = ws.toISOString();
+      const queryRef = query(
+        collection(db, "confirmed_shift"),
+        where("week", "==", weekStr)
+      );
+      const snapshot = await getDocs(queryRef);
 
-        if (snapshot.empty) {
-          setConfirmedShifts([]);
-        } else {
-          const data = [];
-          snapshot.forEach((doc) => {
-            data.push(doc.data());
-          });
-          setConfirmedShifts(data);
-        }
-
-        const we = new Date(ws);
-        we.setDate(ws.getDate() + 6);
-        setWeekStart(ws);
-        setWeekEnd(we);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
+      if (snapshot.empty) {
+        setConfirmedShifts([]);
+      } else {
+        const data = [];
+        snapshot.forEach((doc) => data.push(doc.data()));
+        setConfirmedShifts(data);
       }
-    };
 
-    fetchConfirmed();
-  }, []);
+      const we = getWeekEnd(new Date(), offset);
+      setWeekStart(ws);
+      setWeekEnd(we);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (loading) return <p>読み込み中...</p>;
+  // 初回ロード（今週）
+  useEffect(() => {
+    fetchConfirmed(weekOffset);
+  }, [weekOffset]);
 
-  // ✅ データがない場合のメッセージ
+  // 表示切り替えボタン押下
+  const handleWeekChange = (offset) => {
+    setWeekOffset(offset);
+  };
+
+  if (loading) return <p style={{ textAlign: "center" }}>読み込み中...</p>;
+
+  // データがない場合のメッセージ
   if (confirmedShifts.length === 0) {
     return (
       <div
@@ -69,8 +85,39 @@ const ConfirmShiftView = () => {
           color: "#555",
         }}
       >
-        <h2 style={{ marginBottom: "16px" }}>今週のシフトはまだ出ていません</h2>
+        <h2 style={{ marginBottom: "16px" }}>
+          {weekOffset === 0 ? "今週" : "先週"}のシフトはまだ出ていません
+        </h2>
         <p>管理者が確定シフトを登録するとここに表示されます。</p>
+        <div style={{ marginTop: "20px" }}>
+          <button
+            onClick={() => handleWeekChange(0)}
+            style={{
+              padding: "8px 16px",
+              marginRight: "8px",
+              background: weekOffset === 0 ? "#2196F3" : "#ccc",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+            }}
+          >
+            今週
+          </button>
+          <button
+            onClick={() => handleWeekChange(-1)}
+            style={{
+              padding: "8px 16px",
+              background: weekOffset === -1 ? "#2196F3" : "#ccc",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+            }}
+          >
+            先週
+          </button>
+        </div>
       </div>
     );
   }
@@ -84,6 +131,37 @@ const ConfirmShiftView = () => {
         minHeight: "100vh",
       }}
     >
+      {/* 週切り替えボタン */}
+      <div style={{ textAlign: "center", marginBottom: "16px" }}>
+        <button
+          onClick={() => handleWeekChange(0)}
+          style={{
+            padding: "8px 16px",
+            marginRight: "8px",
+            background: weekOffset === 0 ? "#2196F3" : "#ccc",
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            cursor: "pointer",
+          }}
+        >
+          今週
+        </button>
+        <button
+          onClick={() => handleWeekChange(-1)}
+          style={{
+            padding: "8px 16px",
+            background: weekOffset === -1 ? "#2196F3" : "#ccc",
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            cursor: "pointer",
+          }}
+        >
+          先週
+        </button>
+      </div>
+
       {/* ヘッダー */}
       <div
         style={{
@@ -95,7 +173,9 @@ const ConfirmShiftView = () => {
           textAlign: "center",
         }}
       >
-        <h2 style={{ margin: "0 0 8px" }}>今週の確定シフト</h2>
+        <h2 style={{ margin: "0 0 8px" }}>
+          {weekOffset === 0 ? "今週" : "先週"}の確定シフト
+        </h2>
         {weekStart && weekEnd && (
           <p style={{ color: "#555", margin: 0 }}>
             {formatDate(weekStart)}〜{formatDate(weekEnd)}
