@@ -14,7 +14,7 @@ function UserData() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
 
-  // LIFF初期化
+  // 🔹 LIFF初期化
   useEffect(() => {
     const initLiff = async () => {
       try {
@@ -34,7 +34,7 @@ function UserData() {
     initLiff();
   }, []);
 
-  // Firestore から user テーブル取得
+  // 🔹 Firestoreからuser一覧を取得
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -56,7 +56,7 @@ function UserData() {
     fetchUsers();
   }, []);
 
-  // amount 更新
+  // 🔹 日当変更
   const handleAmountChange = (index, value) => {
     setUsers((prev) => {
       const copy = [...prev];
@@ -65,15 +65,43 @@ function UserData() {
     });
   };
 
-  // Firestore 保存
-  const saveAmounts = async () => {
-    for (const user of users) {
-      const userRef = doc(db, "user", user.id);
-      await updateDoc(userRef, { amount: user.amount || 0 });
-    }
-    alert("保存完了しました");
+  // 🔹 display_name変更
+  const handleNameChange = (index, value) => {
+    setUsers((prev) => {
+      const copy = [...prev];
+      copy[index].display_name = value;
+      return copy;
+    });
   };
 
+  // 🔹 勤務地変更（北新地 or 日本橋）
+  const handleLocationChange = (index, value) => {
+    setUsers((prev) => {
+      const copy = [...prev];
+      copy[index].location = value;
+      return copy;
+    });
+  };
+
+  // 🔹 Firestoreへ保存
+  const saveUserData = async () => {
+    try {
+      for (const user of users) {
+        const userRef = doc(db, "user", user.id);
+        await updateDoc(userRef, {
+          amount: user.amount || 0,
+          display_name: user.display_name || "",
+          location: user.location || "",
+        });
+      }
+      alert("保存が完了しました！");
+    } catch (err) {
+      console.error(err);
+      alert("保存中にエラーが発生しました。");
+    }
+  };
+
+  // 🔹 ローディング中表示
   if (loading) {
     return (
       <div
@@ -89,6 +117,7 @@ function UserData() {
     );
   }
 
+  // 🔹 メイン表示
   return (
     <div
       style={{
@@ -113,7 +142,7 @@ function UserData() {
 
       <div
         style={{
-          maxWidth: "800px",
+          maxWidth: "900px",
           margin: "0 auto",
           backgroundColor: "#fff",
           borderRadius: "8px",
@@ -124,14 +153,19 @@ function UserData() {
       >
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead
-            style={{ backgroundColor: "#f0f0f0", position: "sticky", top: 0 }}
+            style={{
+              backgroundColor: "#f0f0f0",
+              position: "sticky",
+              top: 0,
+              zIndex: 1,
+            }}
           >
             <tr>
               <th
                 style={{
                   border: "1px solid #ccc",
                   padding: "8px",
-                  textAlign: "left",
+                  textAlign: "center",
                 }}
               >
                 名前
@@ -140,10 +174,19 @@ function UserData() {
                 style={{
                   border: "1px solid #ccc",
                   padding: "8px",
-                  textAlign: "left",
+                  textAlign: "center",
                 }}
               >
                 日当
+              </th>
+              <th
+                style={{
+                  border: "1px solid #ccc",
+                  padding: "8px",
+                  textAlign: "center",
+                }}
+              >
+                勤務地
               </th>
             </tr>
           </thead>
@@ -154,7 +197,6 @@ function UserData() {
                 style={{
                   backgroundColor: "#fff",
                   transition: "background 0.2s",
-                  cursor: "default",
                 }}
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.backgroundColor = "#f9f9f9")
@@ -163,19 +205,28 @@ function UserData() {
                   (e.currentTarget.style.backgroundColor = "#fff")
                 }
               >
+                {/* display_name */}
                 <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                  {user.display_name}
+                  <input
+                    type="text"
+                    value={user.display_name || ""}
+                    onChange={(e) => handleNameChange(index, e.target.value)}
+                    placeholder="例: 山田 太郎"
+                    style={{
+                      width: "95%",
+                      padding: "4px",
+                      textAlign: "center",
+                      borderRadius: "4px",
+                      border: "1px solid #ccc",
+                    }}
+                  />
                 </td>
-                <td
-                  style={{
-                    border: "1px solid #ddd",
-                    padding: "8px",
-                    width: "50%",
-                  }}
-                >
+
+                {/* amount（日当） */}
+                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
                   <input
                     type="number"
-                    value={user.amount}
+                    value={user.amount || ""}
                     onChange={(e) => handleAmountChange(index, e.target.value)}
                     placeholder="例: 8000"
                     style={{
@@ -186,6 +237,25 @@ function UserData() {
                       border: "1px solid #ccc",
                     }}
                   />
+                </td>
+
+                {/* location（勤務先） */}
+                <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                  <select
+                    value={user.location || ""}
+                    onChange={(e) => handleLocationChange(index, e.target.value)}
+                    style={{
+                      width: "95%",
+                      padding: "4px",
+                      borderRadius: "4px",
+                      border: "1px solid #ccc",
+                      textAlign: "center",
+                    }}
+                  >
+                    <option value="">選択してください</option>
+                    <option value="北新地">北新地</option>
+                    <option value="日本橋">日本橋</option>
+                  </select>
                 </td>
               </tr>
             ))}
@@ -208,11 +278,11 @@ function UserData() {
 
         <div style={{ textAlign: "right", marginTop: "16px" }}>
           <button
-            onClick={saveAmounts}
+            onClick={saveUserData}
             style={{
               backgroundColor: "#007bff",
               color: "#fff",
-              padding: "8px 16px",
+              padding: "10px 20px",
               border: "none",
               borderRadius: "4px",
               cursor: "pointer",
