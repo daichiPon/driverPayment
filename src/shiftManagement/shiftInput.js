@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useCallback } from "react";
 import { db } from "../firebase";
 import liff from "@line/liff";
 import {
@@ -24,6 +24,26 @@ const ShiftInput = () => {
       {}
     )
   );
+
+    // ✅ 週の開始・終了日
+  const getWeekStart=useCallback((date = new Date(), offset = 1) => {
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
+    const monday = new Date(date.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  },[]);
+
+const getWeekEnd = useCallback((date = new Date(), offset = 1) => {
+  const monday = getWeekStart(date, offset);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return sunday;
+}, [getWeekStart]);
+
+  const weekStart = getWeekStart(new Date(), 1);
+  const weekEnd = getWeekEnd(new Date(), 1);
+  const formatDate = (date) => `${date.getMonth() + 1}/${date.getDate()}`;
 
   // ✅ LIFF初期化
   useEffect(() => {
@@ -104,7 +124,7 @@ const ShiftInput = () => {
       }
     };
     fetchWeek();
-  }, [profile,getWeekEnd]);
+  }, [profile,getWeekEnd,getWeekStart]);
 
   // ✅ 〇×切り替え
   const handleChangeStatus = (day) => {
@@ -167,26 +187,6 @@ const ShiftInput = () => {
       alert("保存に失敗しました");
     }
   };
-
-  // ✅ 週の開始・終了日
-  function getWeekStart(date = new Date(), offset = 1) {
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
-    const monday = new Date(date.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
-    return monday;
-  }
-
-  function getWeekEnd(date = new Date(), offset = 1) {
-    const monday = getWeekStart(date, offset);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    return sunday;
-  }
-
-  const weekStart = getWeekStart(new Date(), 1);
-  const weekEnd = getWeekEnd(new Date(), 1);
-  const formatDate = (date) => `${date.getMonth() + 1}/${date.getDate()}`;
 
   if (loading) return <p>Loading...</p>;
 
