@@ -18,7 +18,7 @@ const AdminShift = () => {
   const [showDesired, setShowDesired] = useState(true);
   const [viewMode, setViewMode] = useState("table"); // ✅ "table" or "card"
 
-  const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
+  const weekdays = useMemo(()=>["月", "火", "水", "木", "金", "土", "日"],[]);
 
   const getWeekStart = (date = new Date(), offset = 1) => {
     const day = date.getDay();
@@ -86,7 +86,7 @@ const AdminShift = () => {
     };
 
     fetchShifts();
-  }, [weekStart]);
+  }, [weekStart,weekdays]);
 
   const toggleStatus = (userId, day) => {
     setConfirmedShifts((prev) => ({
