@@ -1,0 +1,155 @@
+.admin-shift-container {
+  padding: 16px;
+  font-family: "sans-serif";
+  background: #f9fafb;
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  background: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  margin-bottom: 16px;
+}
+.header .sub {
+  font-size: 13px;
+  color: #888;
+}
+
+/* Toggle */
+.toggle {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* PC Table */
+.table-container {
+  overflow-x: auto;
+}
+.shift-table {
+  border-collapse: collapse;
+  width: 100%;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  display: none; /* ✅ モバイルでは非表示 */
+}
+.shift-table th {
+  background: #88949e;
+  color: white;
+  padding: 8px;
+}
+.shift-table td {
+  text-align: center;
+  padding: 6px;
+}
+.user-name {
+  background: #f0f2f5;
+  font-weight: bold;
+}
+.shift-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.ok {
+  color: #4caf50;
+  font-weight: bold;
+}
+.ng {
+  color: #f44336;
+  font-weight: bold;
+}
+.ok-btn {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: bold;
+}
+.ng-btn {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: bold;
+}
+
+/* ✅ モバイルカード表示 */
+.mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.user-card {
+  background: white;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.user-card h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 4px;
+}
+.day-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.day-row strong {
+  width: 30px;
+}
+.day-row select {
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+.desired {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.confirmed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 保存ボタン */
+.save-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: bold;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+/* ✅ PC以上ではテーブル優先 */
+@media (min-width: 768px) {
+  .shift-table {
+    display: table;
+  }
+  .mobile-list {
+    display: none;
+  }
+}

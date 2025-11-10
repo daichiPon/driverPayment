@@ -9,16 +9,17 @@ import {
   where,
   Timestamp,
 } from "firebase/firestore";
+import "./AdminShift.css";
 
 const AdminShift = () => {
   const [loading, setLoading] = useState(true);
   const [desiredShifts, setDesiredShifts] = useState([]);
   const [confirmedShifts, setConfirmedShifts] = useState({});
   const [showDesired, setShowDesired] = useState(true);
+  const [viewMode, setViewMode] = useState("table"); // ✅ "table" or "card"
 
   const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 
-  // 🔹 安定した weekStart を生成
   const getWeekStart = (date = new Date(), offset = 1) => {
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
@@ -36,13 +37,11 @@ const AdminShift = () => {
 
   const formatDate = (date) => `${date.getMonth() + 1}/${date.getDate()}`;
 
-  // 🔹 Firestore から希望・確定シフト取得
   useEffect(() => {
     const fetchShifts = async () => {
       try {
         const weekStr = weekStart.toISOString();
 
-        // 希望シフト
         const desiredQuery = query(
           collection(db, "desired_shift"),
           where("week", "==", weekStr)
@@ -54,7 +53,6 @@ const AdminShift = () => {
         }));
         setDesiredShifts(desiredData);
 
-        // 確定シフト
         const confirmedQuery = query(
           collection(db, "confirmed_shift"),
           where("week", "==", weekStr)
@@ -67,7 +65,6 @@ const AdminShift = () => {
           confirmedData[data.user_id] = data.shifts || {};
         });
 
-        // 存在しない場合は希望を初期値としてコピー
         desiredData.forEach((u) => {
           if (!confirmedData[u.user_id]) {
             confirmedData[u.user_id] = {};
@@ -91,7 +88,6 @@ const AdminShift = () => {
     fetchShifts();
   }, [weekStart]);
 
-  // 🔹 status(○×) 切替
   const toggleStatus = (userId, day) => {
     setConfirmedShifts((prev) => ({
       ...prev,
@@ -105,7 +101,6 @@ const AdminShift = () => {
     }));
   };
 
-  // 🔹 location(拠点) 変更
   const handleLocationChange = (userId, day, newLocation) => {
     setConfirmedShifts((prev) => ({
       ...prev,
@@ -119,7 +114,6 @@ const AdminShift = () => {
     }));
   };
 
-  // 🔹 保存処理
   const handleSave = async () => {
     try {
       const weekStr = weekStart.toISOString();
@@ -162,57 +156,53 @@ const AdminShift = () => {
   if (loading) return <p>読み込み中...</p>;
 
   return (
-    <div
-      style={{
-        padding: "16px",
-        fontFamily: "sans-serif",
-        background: "#f9fafb",
-        minHeight: "100vh",
-      }}
-    >
-      {/* ヘッダー */}
-      <div
-        style={{
-          background: "#fff",
-          padding: "16px",
-          borderRadius: "12px",
-          boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-          marginBottom: "16px",
-          textAlign: "center",
-        }}
-      >
-        <h2 style={{ margin: "0 0 8px" }}>確定シフト設定</h2>
-        <p style={{ color: "#555", margin: 0 }}>
+    <div className="admin-shift-container">
+      <div className="header">
+        <h2>確定シフト設定</h2>
+        <p>
           {formatDate(weekStart)}〜{formatDate(weekEnd)}
         </p>
-        <p style={{ fontSize: "13px", color: "#888" }}>
-          左：希望　右：確定（ステータス切替・拠点選択可）
-        </p>
+        <p className="sub">左：希望　右：確定（ステータス切替・拠点選択可）</p>
       </div>
 
-      {/* 希望シフトトグル */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "8px",
-          marginBottom: "10px",
-        }}
-      >
-        <label style={{ fontWeight: "bold", fontSize: "14px" }}>
-          希望シフトを表示
+      {/* ✅ 表示切替スイッチ */}
+      <div className="view-mode-toggle">
+        <label>
+          <input
+            type="radio"
+            name="viewMode"
+            value="table"
+            checked={viewMode === "table"}
+            onChange={() => setViewMode("table")}
+          />
+          テーブル表示
         </label>
+        <label>
+          <input
+            type="radio"
+            name="viewMode"
+            value="card"
+            checked={viewMode === "card"}
+            onChange={() => setViewMode("card")}
+          />
+          全体表示
+        </label>
+      </div>
+
+      {/* ✅ 希望シフトのON/OFF */}
+      <div className="toggle">
+        <label>希望シフトを表示</label>
         <input
           type="checkbox"
           checked={showDesired}
           onChange={(e) => setShowDesired(e.target.checked)}
-          style={{ transform: "scale(1.2)" }}
         />
       </div>
 
-      {/* テーブル */}
-      <div style={{ overflowX: "auto" }}>
+      {/* ✅ 表示切替 */}
+      {viewMode === "table" ? (
+        // ======= テーブル表示 =======
+        <div style={{ overflowX: "auto" }}>
         <table
           style={{
             borderCollapse: "collapse",
@@ -358,26 +348,60 @@ const AdminShift = () => {
           </tbody>
         </table>
       </div>
+      ) : (
+        // ======= 全体（カード）表示 =======
+        <div className="mobile-list">
+          {desiredShifts.map((user) => (
+            <div key={user.user_id} className="user-card">
+              <h3>{user.display_name}</h3>
+              {weekdays.map((day) => {
+                const desired = user.shifts?.[day];
+                const confirmed = confirmedShifts[user.user_id]?.[day];
+                return (
+                  <div key={day} className="day-row">
+                    <strong>{day}</strong>
+                    {showDesired && (
+                      <div className="desired">
+                        <span
+                          className={desired?.status === "〇" ? "ok" : "ng"}
+                        >
+                          {desired?.status}
+                        </span>
+                        <small>{desired?.location}</small>
+                      </div>
+                    )}
+                    <div className="confirmed">
+                      <button
+                        className={
+                          confirmed?.status === "〇" ? "ok-btn" : "ng-btn"
+                        }
+                        onClick={() => toggleStatus(user.user_id, day)}
+                      >
+                        {confirmed?.status}
+                      </button>
+                      <select
+                        value={confirmed?.location || "日本橋"}
+                        onChange={(e) =>
+                          handleLocationChange(
+                            user.user_id,
+                            day,
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="日本橋">日本橋</option>
+                        <option value="北新地">北新地</option>
+                      </select>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
 
-      {/* 保存ボタン */}
-      <button
-        onClick={handleSave}
-        style={{
-          position: "fixed",
-          bottom: "20px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          backgroundColor: "#2196F3",
-          color: "white",
-          border: "none",
-          padding: "12px 24px",
-          borderRadius: "30px",
-          fontSize: "16px",
-          fontWeight: "bold",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
-          cursor: "pointer",
-        }}
-      >
+      <button className="save-btn" onClick={handleSave}>
         保存
       </button>
     </div>
