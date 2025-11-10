@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState ,useCallback} from "react";
 import { db } from "../firebase";
 import { collection, query, getDocs, where } from "firebase/firestore";
 
@@ -12,28 +12,28 @@ const ConfirmShiftView = () => {
   const [weekOffset, setWeekOffset] = useState(0); // 0 = 今週, -1 = 先週
 
   // 週の開始（月曜）を取得
-  const getWeekStart = (date = new Date(), offset = 0) => {
+  const getWeekStart = useCallback((date = new Date(), offset = 0) => {
     const d = new Date(date);
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
     const monday = new Date(d.setDate(diff));
     monday.setHours(0, 0, 0, 0);
     return monday;
-  };
+  }, []);
 
   // 週の終了（日曜）を取得
-  const getWeekEnd = (date = new Date(), offset = 0) => {
-    const monday = getWeekStart(date, offset);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    return sunday;
-  };
+const getWeekEnd = useCallback((date = new Date(), offset = 0) => {
+  const monday = getWeekStart(date, offset);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return sunday;
+}, [getWeekStart]); // ← getWeekStartを依存に入れる
+
 
   // 日付フォーマット（例：11/11）
   const formatDate = (date) => `${date.getMonth() + 1}/${date.getDate()}`;
 
-  // Firestoreからシフト取得
-  const fetchConfirmed = async (offset) => {
+const fetchConfirmed = useCallback(async (offset) => {
     setLoading(true);
     try {
       const ws = getWeekStart(new Date(), offset);
@@ -60,12 +60,12 @@ const ConfirmShiftView = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getWeekEnd,getWeekStart]);
 
-  // 初回ロード（今週）
+  // 初回ロード＆weekOffset変更時に再実行
   useEffect(() => {
     fetchConfirmed(weekOffset);
-  }, [weekOffset]);
+  }, [weekOffset, fetchConfirmed]);
 
   // 表示切り替えボタン押下
   const handleWeekChange = (offset) => {

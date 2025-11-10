@@ -174,7 +174,7 @@ export default function Summary({
 
     fetchWeekData();
     fetchMonthData();
-  }, [profile, currentMonth]);
+  }, [profile, currentMonth,overrideUserId]);
 
   // 📅 月切替
   const prevMonth = () =>

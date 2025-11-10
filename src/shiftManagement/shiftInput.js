@@ -104,7 +104,7 @@ const ShiftInput = () => {
       }
     };
     fetchWeek();
-  }, [profile]);
+  }, [profile,getWeekEnd]);
 
   // ✅ 〇×切り替え
   const handleChangeStatus = (day) => {

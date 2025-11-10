@@ -83,7 +83,7 @@ const AdminShift = () => {
     };
 
     fetchShifts();
-  }, []);
+  }, [weekStart]);
 
   const handleChange = (userId, day) => {
     setConfirmedShifts((prev) => ({
