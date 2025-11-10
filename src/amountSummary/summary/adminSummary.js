@@ -3,10 +3,6 @@ import { db } from "../../firebase";
 import {
   collection,
   getDocs,
-  query,
-  where,
-  orderBy,
-  Timestamp,
 } from "firebase/firestore";
 import Summary from "./summary"; // 既存のSummaryを再利用（少し改修が必要）
 

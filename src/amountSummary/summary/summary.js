@@ -12,8 +12,6 @@ import {
 
 export default function Summary({
   overrideUserId = null,
-  displayName = "",
-  isAdminView = false,
 }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -99,7 +97,6 @@ export default function Summary({
     };
 
     const fetchWeekData = async () => {
-      const { startOfWeek, endOfWeek } = getWeekRange(0);
       const { startOfWeek: lastStart, endOfWeek: lastEnd } = getWeekRange(1);
 
       try {
