@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { db } from "../firebase";
 import {
   collection,
@@ -10,15 +10,15 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
-const weekdays = ["全曜日", "月", "火", "水", "木", "金", "土", "日"];
-
 const AdminShift = () => {
   const [loading, setLoading] = useState(true);
   const [desiredShifts, setDesiredShifts] = useState([]);
   const [confirmedShifts, setConfirmedShifts] = useState({});
-  const [selectedDay, setSelectedDay] = useState("全曜日");
-  const [showDesired, setShowDesired] = useState(true); // ← 希望を表示するか
+  const [showDesired, setShowDesired] = useState(true);
 
+  const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
+
+  // 🔹 安定した weekStart を生成
   const getWeekStart = (date = new Date(), offset = 1) => {
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
@@ -27,11 +27,16 @@ const AdminShift = () => {
     return monday;
   };
 
-  const formatDate = (date) => `${date.getMonth() + 1}/${date.getDate()}`;
-  const weekStart = getWeekStart();
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
+  const weekStart = useMemo(() => getWeekStart(), []);
+  const weekEnd = useMemo(() => {
+    const end = new Date(weekStart);
+    end.setDate(weekStart.getDate() + 6);
+    return end;
+  }, [weekStart]);
 
+  const formatDate = (date) => `${date.getMonth() + 1}/${date.getDate()}`;
+
+  // 🔹 Firestore から希望・確定シフト取得
   useEffect(() => {
     const fetchShifts = async () => {
       try {
@@ -43,10 +48,10 @@ const AdminShift = () => {
           where("week", "==", weekStr)
         );
         const desiredSnapshot = await getDocs(desiredQuery);
-        const desiredData = [];
-        desiredSnapshot.forEach((doc) => {
-          desiredData.push({ id: doc.id, ...doc.data() });
-        });
+        const desiredData = desiredSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
         setDesiredShifts(desiredData);
 
         // 確定シフト
@@ -56,20 +61,21 @@ const AdminShift = () => {
         );
         const confirmedSnapshot = await getDocs(confirmedQuery);
         const confirmedData = {};
+
         confirmedSnapshot.forEach((doc) => {
           const data = doc.data();
-          confirmedData[data.user_id] = {};
-          ["月", "火", "水", "木", "金", "土", "日"].forEach((day) => {
-            confirmedData[data.user_id][day] = data[day] || "×";
-          });
+          confirmedData[data.user_id] = data.shifts || {};
         });
 
         // 存在しない場合は希望を初期値としてコピー
         desiredData.forEach((u) => {
           if (!confirmedData[u.user_id]) {
             confirmedData[u.user_id] = {};
-            ["月", "火", "水", "木", "金", "土", "日"].forEach((day) => {
-              confirmedData[u.user_id][day] = u[day] || "×";
+            weekdays.forEach((day) => {
+              confirmedData[u.user_id][day] = {
+                status: u.shifts?.[day]?.status || "×",
+                location: u.shifts?.[day]?.location || "日本橋",
+              };
             });
           }
         });
@@ -85,20 +91,38 @@ const AdminShift = () => {
     fetchShifts();
   }, [weekStart]);
 
-  const handleChange = (userId, day) => {
+  // 🔹 status(○×) 切替
+  const toggleStatus = (userId, day) => {
     setConfirmedShifts((prev) => ({
       ...prev,
       [userId]: {
         ...prev[userId],
-        [day]: prev[userId][day] === "〇" ? "×" : "〇",
+        [day]: {
+          ...prev[userId][day],
+          status: prev[userId][day].status === "〇" ? "×" : "〇",
+        },
       },
     }));
   };
 
+  // 🔹 location(拠点) 変更
+  const handleLocationChange = (userId, day, newLocation) => {
+    setConfirmedShifts((prev) => ({
+      ...prev,
+      [userId]: {
+        ...prev[userId],
+        [day]: {
+          ...prev[userId][day],
+          location: newLocation,
+        },
+      },
+    }));
+  };
+
+  // 🔹 保存処理
   const handleSave = async () => {
     try {
       const weekStr = weekStart.toISOString();
-
       const now = new Date();
       const threeMonthsLater = new Date(now);
       threeMonthsLater.setMonth(now.getMonth() + 3);
@@ -109,7 +133,7 @@ const AdminShift = () => {
           user_id: userId,
           display_name: user.display_name || "",
           week: weekStr,
-          ...confirmedShifts[userId],
+          shifts: confirmedShifts[userId],
           updated_at: Timestamp.now(),
           expireAt: threeMonthsLater,
         };
@@ -127,6 +151,7 @@ const AdminShift = () => {
           await addDoc(collection(db, "confirmed_shift"), payload);
         }
       }
+
       alert("確定シフトを保存しました！");
     } catch (err) {
       console.error(err);
@@ -161,177 +186,33 @@ const AdminShift = () => {
           {formatDate(weekStart)}〜{formatDate(weekEnd)}
         </p>
         <p style={{ fontSize: "13px", color: "#888" }}>
-          左：希望　右：確定（タップで切替）
+          左：希望　右：確定（ステータス切替・拠点選択可）
         </p>
       </div>
 
-      {/* 曜日タブ */}
+      {/* 希望シフトトグル */}
       <div
         style={{
           display: "flex",
-          overflowX: "auto",
-          marginBottom: "12px",
+          justifyContent: "center",
+          alignItems: "center",
           gap: "8px",
+          marginBottom: "10px",
         }}
       >
-        {weekdays.map((day) => (
-          <button
-            key={day}
-            onClick={() => setSelectedDay(day)}
-            style={{
-              flex: "0 0 auto",
-              padding: "8px 16px",
-              borderRadius: "20px",
-              border: "none",
-              cursor: "pointer",
-              background: selectedDay === day ? "#2196F3" : "rgba(0,0,0,0.1)",
-              color: selectedDay === day ? "white" : "#333",
-              fontWeight: "bold",
-              transition: "0.2s",
-            }}
-          >
-            {day}
-          </button>
-        ))}
+        <label style={{ fontWeight: "bold", fontSize: "14px" }}>
+          希望シフトを表示
+        </label>
+        <input
+          type="checkbox"
+          checked={showDesired}
+          onChange={(e) => setShowDesired(e.target.checked)}
+          style={{ transform: "scale(1.2)" }}
+        />
       </div>
 
-      {/* 全曜日トグル */}
-      {selectedDay === "全曜日" && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: "8px",
-            marginBottom: "10px",
-          }}
-        >
-          <label style={{ fontWeight: "bold", fontSize: "14px" }}>
-            希望シフトを表示
-          </label>
-          <input
-            type="checkbox"
-            checked={showDesired}
-            onChange={(e) => setShowDesired(e.target.checked)}
-            style={{ transform: "scale(1.2)" }}
-          />
-        </div>
-      )}
-
-      {/* テーブル表示 */}
-      {selectedDay === "全曜日" ? (
-        // 🗓 全曜日表示
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              borderCollapse: "collapse",
-              width: "100%",
-              background: "#fff",
-              borderRadius: "12px",
-              overflow: "hidden",
-              boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-            }}
-          >
-            <thead style={{ background: "#88949e", color: "white" }}>
-              <tr>
-                <th style={{ padding: "8px" }}>ユーザー</th>
-                {["月", "火", "水", "木", "金", "土", "日"].map((day) => (
-                  <th
-                    key={day}
-                    colSpan={showDesired ? 2 : 1}
-                    style={{ padding: "8px" }}
-                  >
-                    {day}
-                  </th>
-                ))}
-              </tr>
-              {showDesired && (
-                <tr style={{ background: "#a1a8b3", color: "white" }}>
-                  <th></th>
-                  {["月", "火", "水", "木", "金", "土", "日"].map((day) => (
-                    <React.Fragment key={day}>
-                      <th style={{ fontSize: "12px" }}>希望</th>
-                      <th style={{ fontSize: "12px" }}>確定</th>
-                    </React.Fragment>
-                  ))}
-                </tr>
-              )}
-            </thead>
-            <tbody>
-              {desiredShifts.map((user) => (
-                <tr key={user.user_id}>
-                  <td
-                    style={{
-                      padding: "8px",
-                      fontWeight: "bold",
-                      background: "#f0f2f5",
-                      textAlign: "center",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {user.display_name || user.user_id}
-                  </td>
-                  {["月", "火", "水", "木", "金", "土", "日"].map((day) =>
-                    showDesired ? (
-                      <React.Fragment key={day}>
-                        <td
-                          style={{
-                            padding: "6px",
-                            textAlign: "center",
-                            color: user[day] === "〇" ? "#4CAF50" : "#f44336",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {user[day] || "×"}
-                        </td>
-                        <td
-                          onClick={() => handleChange(user.user_id, day)}
-                          style={{
-                            padding: "6px",
-                            textAlign: "center",
-                            cursor: "pointer",
-                            background:
-                              confirmedShifts[user.user_id]?.[day] === "〇"
-                                ? "#4CAF50"
-                                : "#f44336",
-                            color: "white",
-                            borderRadius: "4px",
-                            transition: "0.2s",
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {confirmedShifts[user.user_id]?.[day] || "×"}
-                        </td>
-                      </React.Fragment>
-                    ) : (
-                      <td
-                        key={day}
-                        onClick={() => handleChange(user.user_id, day)}
-                        style={{
-                          padding: "6px",
-                          textAlign: "center",
-                          cursor: "pointer",
-                          background:
-                            confirmedShifts[user.user_id]?.[day] === "〇"
-                              ? "#4CAF50"
-                              : "#f44336",
-                          color: "white",
-                          borderRadius: "4px",
-                          transition: "0.2s",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {confirmedShifts[user.user_id]?.[day] || "×"}
-                      </td>
-                    )
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        // 📅 単一曜日表示
+      {/* テーブル */}
+      <div style={{ overflowX: "auto" }}>
         <table
           style={{
             borderCollapse: "collapse",
@@ -345,8 +226,15 @@ const AdminShift = () => {
           <thead style={{ background: "#88949e", color: "white" }}>
             <tr>
               <th style={{ padding: "8px" }}>ユーザー</th>
-              <th style={{ padding: "8px" }}>希望</th>
-              <th style={{ padding: "8px" }}>確定</th>
+              {weekdays.map((day) => (
+                <th
+                  key={day}
+                  colSpan={showDesired ? 4 : 2}
+                  style={{ padding: "8px" }}
+                >
+                  {day}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -362,39 +250,114 @@ const AdminShift = () => {
                 >
                   {user.display_name || user.user_id}
                 </td>
-                <td
-                  style={{
-                    padding: "8px",
-                    textAlign: "center",
-                    color: user[selectedDay] === "〇" ? "#4CAF50" : "#f44336",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {user[selectedDay] || "×"}
-                </td>
-                <td
-                  onClick={() => handleChange(user.user_id, selectedDay)}
-                  style={{
-                    padding: "8px",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    background:
-                      confirmedShifts[user.user_id]?.[selectedDay] === "〇"
-                        ? "#4CAF50"
-                        : "#f44336",
-                    color: "white",
-                    borderRadius: "4px",
-                    transition: "0.2s",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {confirmedShifts[user.user_id]?.[selectedDay] || "×"}
-                </td>
+
+                {weekdays.map((day) => {
+                  const desired = user.shifts?.[day];
+                  const confirmed = confirmedShifts[user.user_id]?.[day];
+                  return showDesired ? (
+                    <React.Fragment key={day}>
+                      {/* 希望 */}
+                      <td
+                        style={{
+                          padding: "6px",
+                          textAlign: "center",
+                          color:
+                            desired?.status === "〇" ? "#4CAF50" : "#f44336",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {desired?.status || "×"}
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        {desired?.location || "-"}
+                      </td>
+
+                      {/* 確定（status切替＋location選択） */}
+                      <td
+                        onClick={() => toggleStatus(user.user_id, day)}
+                        style={{
+                          padding: "6px",
+                          textAlign: "center",
+                          cursor: "pointer",
+                          background:
+                            confirmed?.status === "〇"
+                              ? "#4CAF50"
+                              : "#f44336",
+                          color: "white",
+                          borderRadius: "4px",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {confirmed?.status || "×"}
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <select
+                          value={confirmed?.location || "日本橋"}
+                          onChange={(e) =>
+                            handleLocationChange(
+                              user.user_id,
+                              day,
+                              e.target.value
+                            )
+                          }
+                          style={{
+                            padding: "4px 6px",
+                            borderRadius: "6px",
+                            border: "1px solid #ccc",
+                          }}
+                        >
+                          <option value="日本橋">日本橋</option>
+                          <option value="北新地">北新地</option>
+                        </select>
+                      </td>
+                    </React.Fragment>
+                  ) : (
+                    <React.Fragment key={day}>
+                      <td
+                        onClick={() => toggleStatus(user.user_id, day)}
+                        style={{
+                          padding: "6px",
+                          textAlign: "center",
+                          cursor: "pointer",
+                          background:
+                            confirmed?.status === "〇"
+                              ? "#4CAF50"
+                              : "#f44336",
+                          color: "white",
+                          borderRadius: "4px",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {confirmed?.status || "×"}
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <select
+                          value={confirmed?.location || "日本橋"}
+                          onChange={(e) =>
+                            handleLocationChange(
+                              user.user_id,
+                              day,
+                              e.target.value
+                            )
+                          }
+                          style={{
+                            padding: "4px 6px",
+                            borderRadius: "6px",
+                            border: "1px solid #ccc",
+                          }}
+                        >
+                          <option value="日本橋">日本橋</option>
+                          <option value="北新地">北新地</option>
+                        </select>
+                      </td>
+                    </React.Fragment>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
         </table>
-      )}
+      </div>
 
       {/* 保存ボタン */}
       <button
