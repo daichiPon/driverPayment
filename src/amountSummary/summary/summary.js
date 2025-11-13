@@ -10,9 +10,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
-export default function Summary({
-  overrideUserId = null,
-}) {
+export default function Summary({ overrideUserId = null }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [allPayments, setAllPayments] = useState([]);
@@ -145,7 +143,6 @@ export default function Summary({
             Math.abs(a.created_at.getTime() - today.getTime()) -
             Math.abs(b.created_at.getTime() - today.getTime())
         );
-        console.log(JSON.stringify(sortedByProximity));
         // --- 条件分岐 ---
         let combined = [];
 
@@ -174,7 +171,7 @@ export default function Summary({
 
     fetchWeekData();
     fetchMonthData();
-  }, [profile, currentMonth,overrideUserId]);
+  }, [profile, currentMonth, overrideUserId]);
 
   // 📅 月切替
   const prevMonth = () =>
@@ -288,6 +285,17 @@ export default function Summary({
             )}
           </tbody>
         </table>
+        {payments.length > 0 && (
+          <div
+            style={{ textAlign: "right", marginTop: "8px", fontWeight: "bold" }}
+          >
+            合計金額：
+            {payments
+              .reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+              .toLocaleString()}{" "}
+            円
+          </div>
+        )}
       </div>
 
       {/* 📅 月次データ */}
