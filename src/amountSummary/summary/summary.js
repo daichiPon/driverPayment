@@ -148,11 +148,18 @@ export default function Summary({ overrideUserId = null }) {
 
         if (lastWeek.length === 0) {
           // ✅ 先週0件 → 二番目に今日に近いデータを取得
-          combined = [{ ...sortedByProximity[1], week: "その他" }];
+          combined =
+            sortedByProximity.length > 0
+              ? [{ ...sortedByProximity[1], week: "その他" }]
+              : [];
         } else if (lastWeek.length === 1) {
           // ✅ 先週1件 → 今日に最も近いデータ1件を取得
-          combined = [{ ...sortedByProximity[0], week: "その他" }];
-        } else {
+          combined =
+            sortedByProximity.length > 0
+              ? [{ ...sortedByProximity[0], week: "その他" }]
+              : [];
+          console.log(combined);
+        } else if (lastWeek.length >= 2) {
           // ✅ 先週2件以上 → 最後の1日を除いた先週 + 今日に最も近いデータ1件
           const lastWeekExcludingLast = lastWeek.slice(0, -1);
           combined = [
@@ -269,7 +276,11 @@ export default function Summary({ overrideUserId = null }) {
               payments.map((p) => (
                 <tr key={p.id}>
                   <td style={tdStyle}>{p.week}</td>
-                  <td style={tdStyle}>{p.created_at.toLocaleDateString()}</td>
+                  <td style={tdStyle}>
+                    {p.created_at
+                      ? new Date(p.created_at).toLocaleDateString()
+                      : "日付不明"}
+                  </td>
                   <td style={tdStyle}>{p.mileage} km</td>
                   <td style={tdStyle}>{p.highway_fee} 円</td>
                   <td style={tdStyle}>{p.hour} h</td>
