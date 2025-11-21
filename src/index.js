@@ -19,7 +19,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
-const allowedUserId = "U9c71f18a533fe0600a3bd97a02346cc8";
+const allowedUserId = "";
 
 function Root() {
   const [currentUserId, setCurrentUserId] = useState(null);
