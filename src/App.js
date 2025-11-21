@@ -308,12 +308,11 @@ function App() {
                 >
                   増減時間 (時)
                 </label>
-                <input
-                  type="number"
+
+                <select
                   name="hour"
                   value={formData.hour}
                   onChange={handleChange}
-                  placeholder="例: 1"
                   style={{
                     width: "95%",
                     padding: "8px",
@@ -321,7 +320,13 @@ function App() {
                     border: "1px solid #ccc",
                     outline: "none",
                   }}
-                />
+                >
+                  {[5,4,3,2,1,0,-1,-2,-3,-4,-5].map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div style={{ textAlign: "right" }}>

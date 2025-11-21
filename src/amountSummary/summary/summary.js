@@ -267,7 +267,7 @@ export default function Summary({ overrideUserId = null }) {
               <th style={thStyle}>日付</th>
               <th style={thStyle}>走行距離</th>
               <th style={thStyle}>高速料金</th>
-              <th style={thStyle}>遅刻時間</th>
+              <th style={thStyle}>増減時間</th>
               <th style={thStyle}>精算額</th>
             </tr>
           </thead>
@@ -330,7 +330,7 @@ export default function Summary({ overrideUserId = null }) {
               <th style={thStyle}>日付</th>
               <th style={thStyle}>走行距離</th>
               <th style={thStyle}>高速料金</th>
-              <th style={thStyle}>遅刻時間</th>
+              <th style={thStyle}>増減時間</th>
               <th style={thStyle}>精算額</th>
             </tr>
           </thead>
