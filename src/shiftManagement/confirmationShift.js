@@ -174,7 +174,11 @@ const ConfirmShiftView = () => {
                         }}
                       >
                         {status} <br />
-                        <span style={{ fontWeight: "normal", fontSize: "0.8rem" }}>{location}</span>
+                          {status === "〇" ? (
+                              <span style={{ fontWeight: "normal", fontSize: "0.8rem" }}>
+                                {location}
+                              </span>
+                            ) : null}
                       </td>
                     );
                   })}
