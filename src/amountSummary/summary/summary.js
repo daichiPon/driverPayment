@@ -17,7 +17,6 @@ export default function Summary({ overrideUserId = null }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [payments, setPayments] = useState([]);
 
-  // 📆 週範囲計算
   const getWeekRange = (weeksAgo = 0) => {
     const now = new Date();
     const startOfWeek = new Date(now);
@@ -29,7 +28,6 @@ export default function Summary({ overrideUserId = null }) {
     return { startOfWeek, endOfWeek };
   };
 
-  // 🟩 LIFF 初期化
   useEffect(() => {
     const initLiff = async () => {
       try {
@@ -49,7 +47,6 @@ export default function Summary({ overrideUserId = null }) {
     initLiff();
   }, []);
 
-  // 🔄 月データ取得
   useEffect(() => {
     if (!profile && !overrideUserId) return;
 
@@ -95,7 +92,7 @@ export default function Summary({ overrideUserId = null }) {
     };
 
     const fetchWeekData = async () => {
-      const { startOfWeek: lastStart, endOfWeek: lastEnd } = getWeekRange(1);
+      const { startOfWeek, endOfWeek } = getWeekRange(1);
 
       try {
         const q = query(
@@ -120,57 +117,30 @@ export default function Summary({ overrideUserId = null }) {
           };
         });
 
-        // --- 不完全データを除外 ---
-        const filtered = data.filter(
+        // 先週のデータだけ抽出
+        const lastWeekData = data.filter(
           (d) =>
+            d.created_at >= startOfWeek &&
+            d.created_at <= endOfWeek &&
             d.mileage !== undefined &&
             d.highway_fee !== undefined &&
             d.hour !== undefined &&
             d.amount !== undefined
         );
 
-        const lastWeek = filtered.filter(
-          (d) => d.created_at >= lastStart && d.created_at <= lastEnd
-        );
-
-        // 今週・先週より前のデータ
-        const others = filtered.filter((d) => d.created_at < lastStart);
-
-        // 今日に最も近いデータを取得するために日付差でソート
-        const today = new Date();
-        const sortedByProximity = [...others].sort(
-          (a, b) =>
-            Math.abs(a.created_at.getTime() - today.getTime()) -
-            Math.abs(b.created_at.getTime() - today.getTime())
-        );
-        // --- 条件分岐 ---
-        let combined = [];
-
-        if (lastWeek.length === 0) {
-          // ✅ 先週0件 → 二番目に今日に近いデータを取得
-          combined =
-            sortedByProximity.length > 0
-              ? [{ ...sortedByProximity[1], week: "その他" }]
-              : [];
-        } else if (lastWeek.length === 1) {
-          // ✅ 先週1件 → 今日に最も近いデータ1件を取得
-          combined =
-            sortedByProximity.length > 0
-              ? [{ ...sortedByProximity[0], week: "その他" }]
-              : [];
-          console.log(combined);
-        } else if (lastWeek.length >= 2) {
-          // ✅ 先週2件以上 → 最後の1日を除いた先週 + 今日に最も近いデータ1件
-          const lastWeekExcludingLast = lastWeek.slice(0, -1);
-          combined = [
-            ...lastWeekExcludingLast.map((d) => ({ ...d, week: "先週" })),
-            ...(sortedByProximity.length > 0
-              ? [{ ...sortedByProximity[0], week: "その他" }]
-              : []),
-          ];
+        if (lastWeekData.length > 0) {
+          // 先週データが1件以上 → すべて表示
+          setPayments(lastWeekData);
+        } else {
+          // 先週データなし → 今日までの最新データ1件
+          const pastData = data.filter((d) => d.created_at < startOfWeek);
+          if (pastData.length > 0) {
+            const latest = pastData[pastData.length - 1]; // 最後のデータ
+            setPayments([latest]);
+          } else {
+            setPayments([]); // データなし
+          }
         }
-
-        setPayments(combined);
       } catch (err) {
         console.error(err);
       }
@@ -180,7 +150,6 @@ export default function Summary({ overrideUserId = null }) {
     fetchMonthData();
   }, [profile, currentMonth, overrideUserId]);
 
-  // 📅 月切替
   const prevMonth = () =>
     setCurrentMonth(
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
@@ -198,7 +167,6 @@ export default function Summary({ overrideUserId = null }) {
     );
   }
 
-  // 🎨 共通スタイル
   const containerStyle = {
     backgroundColor: "#f9fafb",
     minHeight: "100vh",
@@ -263,7 +231,6 @@ export default function Summary({ overrideUserId = null }) {
         <table style={tableStyle}>
           <thead>
             <tr>
-              <th style={thStyle}>週</th>
               <th style={thStyle}>日付</th>
               <th style={thStyle}>走行距離</th>
               <th style={thStyle}>高速料金</th>
@@ -275,7 +242,6 @@ export default function Summary({ overrideUserId = null }) {
             {payments.length > 0 ? (
               payments.map((p) => (
                 <tr key={p.id}>
-                  <td style={tdStyle}>{p.week}</td>
                   <td style={tdStyle}>
                     {p.created_at
                       ? new Date(p.created_at).toLocaleDateString()
@@ -289,7 +255,7 @@ export default function Summary({ overrideUserId = null }) {
               ))
             ) : (
               <tr>
-                <td colSpan={6} style={{ ...tdStyle, color: "#999" }}>
+                <td colSpan={5} style={{ ...tdStyle, color: "#999" }}>
                   データがありません
                 </td>
               </tr>
@@ -303,12 +269,11 @@ export default function Summary({ overrideUserId = null }) {
             合計金額：
             {payments
               .reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
-              .toLocaleString()}{" "}
+              .toLocaleString()}
             円
           </div>
         )}
       </div>
-
       {/* 📅 月次データ */}
       <div style={{ ...cardStyle, marginTop: 20 }}>
         <p style={headerText}>
