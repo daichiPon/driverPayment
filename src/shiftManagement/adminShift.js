@@ -18,14 +18,14 @@ const AdminShift = () => {
   const [showDesired, setShowDesired] = useState(true);
   const [viewMode, setViewMode] = useState("table"); // ✅ "table" or "card"
 
-  const weekdays = useMemo(()=>["月", "火", "水", "木", "金", "土", "日"],[]);
+  const weekdays = useMemo(()=>["日", "月", "火", "水", "木", "金", "土"],[]);
 
   const getWeekStart = (date = new Date(), offset = 1) => {
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
-    const monday = new Date(date.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
-    return monday;
+    const day = date.getDay();      // 0=日,1=月,...
+    const diff = date.getDate() - day + offset * 7;
+    const sunday = new Date(date.setDate(diff));
+    sunday.setHours(0, 0, 0, 0);
+    return sunday;
   };
 
   const weekStart = useMemo(() => getWeekStart(), []);

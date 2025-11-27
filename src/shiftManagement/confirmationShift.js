@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { db } from "../firebase";
 import { collection, query, getDocs, where } from "firebase/firestore";
 
-const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
+const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
 
 const ConfirmShiftView = () => {
   const [loading, setLoading] = useState(true);
@@ -14,18 +14,18 @@ const ConfirmShiftView = () => {
   const getWeekStart = useCallback((date = new Date(), offset = 0) => {
     const d = new Date(date);
     const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
-    const monday = new Date(d.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
-    return monday;
+    const diff = d.getDate() - day + offset * 7;
+    const sunday = new Date(d.setDate(diff));
+    sunday.setHours(0, 0, 0, 0);
+    return sunday;
   }, []);
 
   const getWeekEnd = useCallback(
     (date = new Date(), offset = 0) => {
-      const monday = getWeekStart(date, offset);
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      return sunday;
+      const sunday = getWeekStart(date, offset);
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
+      return saturday;
     },
     [getWeekStart]
   );
@@ -74,11 +74,10 @@ const ConfirmShiftView = () => {
 
   const handleDateSelect = (e) => {
     const selectedDate = new Date(e.target.value);
-    const monday = getWeekStart(selectedDate, 0);
-    const currentMonday = getWeekStart(new Date(), 0);
-    const diffDays = Math.floor((monday - currentMonday) / (1000 * 60 * 60 * 24));
-    const offset = Math.floor(diffDays / 7);
-    setWeekOffset(offset);
+    const selectedSunday = getWeekStart(selectedDate, 0);
+    const currentSunday = getWeekStart(new Date(), 0);
+    const diffDays = Math.floor((selectedSunday - currentSunday) / (1000 * 60 * 60 * 24));
+    setWeekOffset(Math.floor(diffDays / 7));
   };
 
   if (loading) return <p style={{ textAlign: "center" }}>読み込み中...</p>;
