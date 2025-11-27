@@ -13,13 +13,10 @@
 
 
 ## 納品するときにやること
-- firebaseの管理者を変更して自分を削除
-- lineDeveloperの管理者を変更して自分を削除
+- [firebaseの管理者を変更して自分を削除](https://console.firebase.google.com/u/1/project/nightrun-b8b53/settings/iam)
+- [lineDeveloperの管理者を変更して自分を削除](https://developers.line.biz/console/provider/2004561219/roles)
+
+## 補足
 - lineDeveloperは未認証の状態だとlineの公式アカウントを検索しても表示されない
   →従業員以外はログインできないようにするために未認証でOK lineDeveloperのQRコードから登録する
-
-## 残タスク
-- liffアプリに表示される管理者とユーザの使用切り分け
-- シフトデータを2週間経過で削除
-- driver_payments（請求金額）のデータをどのタイミングで削除するかの確認&実装
-- 退職したユーザの削除方法
+- vercel（ローンチ）についてどうするか、可能であればGoogleでログインしたvercelアカウントを作成して、それにgitHubを紐づけてローンチしたい
