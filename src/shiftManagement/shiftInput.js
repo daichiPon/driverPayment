@@ -11,7 +11,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
-const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
+const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
 const locations = ["北新地", "日本橋"]; // 🔹 選択肢
 
 const ShiftInput = () => {
@@ -26,20 +26,22 @@ const ShiftInput = () => {
   );
 
     // ✅ 週の開始・終了日
-  const getWeekStart=useCallback((date = new Date(), offset = 1) => {
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1) + offset * 7;
-    const monday = new Date(date.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
-    return monday;
-  },[]);
+const getWeekStart = useCallback((date = new Date(), offset = 1) => {
+  const day = date.getDay(); // 0=日, 1=月,...
+  const diff = date.getDate() - day + offset * 7;
+  const sunday = new Date(date.setDate(diff));
+  sunday.setHours(0, 0, 0, 0);
+  return sunday;
+}, []);
+
 
 const getWeekEnd = useCallback((date = new Date(), offset = 1) => {
-  const monday = getWeekStart(date, offset);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return sunday;
+  const weekStartDate = getWeekStart(date, offset);
+  const saturday = new Date(weekStartDate);
+  saturday.setDate(weekStartDate.getDate() + 6);
+  return saturday;
 }, [getWeekStart]);
+
 
   const weekStart = getWeekStart(new Date(), 1);
   const weekEnd = getWeekEnd(new Date(), 1);
