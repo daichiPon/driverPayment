@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { db } from "../firebase";
-import { collection, query, getDocs, where } from "firebase/firestore";
+import { collection, query, getDocs, where, Timestamp } from "firebase/firestore";
 
 const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -10,6 +10,9 @@ const ConfirmShiftView = () => {
   const [weekStart, setWeekStart] = useState(null);
   const [weekEnd, setWeekEnd] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [users, setUsers] = useState([]);
+
+  console.log('user',JSON.stringify(users))
 
   const getWeekStart = useCallback((date = new Date(), offset = 0) => {
     const d = new Date(date);
@@ -68,6 +71,28 @@ const ConfirmShiftView = () => {
   useEffect(() => {
     fetchConfirmed(weekOffset);
   }, [weekOffset, fetchConfirmed]);
+
+    // 🔹 Firestoreからuser一覧を取得
+    useEffect(() => {
+      const fetchUsers = async () => {
+        try {
+          const q = collection(db, "user");
+          const querySnapshot = await getDocs(q);
+          const data = querySnapshot.docs.map((docItem) => ({
+            id: docItem.id,
+            ...docItem.data(),
+            created_at:
+              docItem.data().created_at instanceof Timestamp
+                ? docItem.data().created_at.toDate()
+                : docItem.data().created_at ?? null,
+          }));
+          setUsers(data);
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      fetchUsers();
+    }, []);
 
   const handlePrevWeek = () => setWeekOffset((prev) => prev - 1);
   const handleNextWeek = () => setWeekOffset((prev) => prev + 1);
@@ -152,7 +177,10 @@ const ConfirmShiftView = () => {
               confirmedShifts.map((user) => (
                 <tr key={user.user_id}>
                   <td style={{ padding: "8px", fontWeight: "bold", background: "#f0f2f5", textAlign: "center", whiteSpace: "nowrap" }}>
-                    {user.display_name || user.user_id}
+                    {(() => {
+                      const foundUser = users.find((u) => u.user_id === user.user_id);
+                      return foundUser?.display_name ?? user.display_name ?? user.user_id;
+                    })()}
                   </td>
                   {weekdays.map((day) => {
                     const shift = user.shifts?.[day];

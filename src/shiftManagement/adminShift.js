@@ -16,7 +16,8 @@ const AdminShift = () => {
   const [desiredShifts, setDesiredShifts] = useState([]);
   const [confirmedShifts, setConfirmedShifts] = useState({});
   const [showDesired, setShowDesired] = useState(true);
-  const [viewMode, setViewMode] = useState("table"); // ✅ "table" or "card"
+  const [viewMode, setViewMode] = useState("table");
+  const [users, setUsers] = useState([]);
 
   const weekdays = useMemo(()=>["日", "月", "火", "水", "木", "金", "土"],[]);
 
@@ -41,6 +42,10 @@ const AdminShift = () => {
     const fetchShifts = async () => {
       try {
         const weekStr = weekStart.toISOString();
+
+        const userSnapshot = await getDocs(collection(db, "user"));
+        const userList = userSnapshot.docs.map((doc) => doc.data());
+        setUsers(userList);
 
         const desiredQuery = query(
           collection(db, "desired_shift"),
@@ -87,6 +92,11 @@ const AdminShift = () => {
 
     fetchShifts();
   }, [weekStart,weekdays]);
+
+  const resolveUserName = (userId, fallbackName) => {
+    const found = users.find((u) => u.user_id === userId);
+    return found?.display_name ?? fallbackName ?? userId;
+  };
 
   const toggleStatus = (userId, day) => {
     setConfirmedShifts((prev) => ({
@@ -238,7 +248,7 @@ const AdminShift = () => {
                     textAlign: "center",
                   }}
                 >
-                  {user.display_name || user.user_id}
+                  {resolveUserName(user.user_id, user.display_name)}
                 </td>
 
                 {weekdays.map((day) => {
@@ -353,7 +363,7 @@ const AdminShift = () => {
         <div className="mobile-list">
           {desiredShifts.map((user) => (
             <div key={user.user_id} className="user-card">
-              <h3>{user.display_name}</h3>
+              {resolveUserName(user.user_id, user.display_name)}
               {weekdays.map((day) => {
                 const desired = user.shifts?.[day];
                 const confirmed = confirmedShifts[user.user_id]?.[day];
