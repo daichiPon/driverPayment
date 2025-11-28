@@ -95,7 +95,7 @@ const AdminShift = () => {
 
   const resolveUserName = (userId, fallbackName) => {
     const found = users.find((u) => u.user_id === userId);
-    return found?.display_name ?? fallbackName ?? userId;
+    return found?.display_name ?? found?.display_name ?? fallbackName ?? userId;
   };
 
   const toggleStatus = (userId, day) => {

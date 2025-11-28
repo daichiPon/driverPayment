@@ -177,7 +177,7 @@ const ConfirmShiftView = () => {
                   <td style={{ padding: "8px", fontWeight: "bold", background: "#f0f2f5", textAlign: "center", whiteSpace: "nowrap" }}>
                     {(() => {
                       const foundUser = users.find((u) => u.user_id === user.user_id);
-                      return foundUser?.display_name ?? user.display_name ?? user.user_id;
+                      return foundUser?.display_name ?? foundUser.display_name ?? user.display_name;
                     })()}
                   </td>
                   {weekdays.map((day) => {
