@@ -12,8 +12,6 @@ const ConfirmShiftView = () => {
   const [weekOffset, setWeekOffset] = useState(0);
   const [users, setUsers] = useState([]);
 
-  console.log('user',JSON.stringify(users))
-
   const getWeekStart = useCallback((date = new Date(), offset = 0) => {
     const d = new Date(date);
     const day = d.getDay();
